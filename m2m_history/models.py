@@ -46,35 +46,44 @@ def create_many_related_history_manager(superclass, rel):
             qs = self.filter(group=group, **kwargs)
             return self._prepare_qs(qs, unique)
 
-        def _get_qs_through(self):
+        def _get_queryset_through(self):
             db = router.db_for_write(self.through, instance=self.instance)
-            qs = self.through._default_manager.using(db).filter(**{self.source_field_name: self._fk_val,}).values_list(self.target_field_name, flat=True)
+            qs = self.through._default_manager.using(db).filter(**{
+                self.source_field_name: self._fk_val,
+            }).values_list(self.target_field_name, flat=True)
             return qs
 
-        def added(self, time):
-            qs_through = self._get_qs_through().filter(time_from=time)
-            qs = super(ManyToManyHistoryThroughManager, self).all()
-            return qs.filter(pk__in=qs_through).distinct()
+        def _prepare_queryset(self, queryset, only_pk, unique):
+            if not only_pk:
+                if unique == False:
+                    raise ValueError("Argument `unique` should be True if argument only_pk is False")
+                queryset = super(ManyToManyHistoryThroughManager, self).all().filter(pk__in=queryset)
 
-        def removed(self, time):
-            qs_through = self._get_qs_through().filter(time_to=time)
-            qs = super(ManyToManyHistoryThroughManager, self).all()
-            return qs.filter(pk__in=qs_through).distinct()
+            if unique:
+                queryset = queryset.distinct()
+            return queryset
 
-        def all(self, time=None, *args, **kwargs):
-            qs_through = self._get_qs_through()
+        def added_at(self, time, only_pk=False, unique=True):
+            queryset = self._get_queryset_through().filter(time_from=time)
+            return self._prepare_queryset(queryset, only_pk, unique)
+
+        def removed_at(self, time, only_pk=False, unique=True):
+            queryset = self._get_queryset_through().filter(time_to=time)
+            return self._prepare_queryset(queryset, only_pk, unique)
+
+        def all(self, time=None, only_pk=False, unique=True):
+            queryset = self._get_queryset_through()
 
             if time is None:
-                qs_through = qs_through.filter(time_to=None)
+                queryset = queryset.filter(time_to=None)
             else:
-                qs_through = qs_through.filter(
+                queryset = queryset.filter(
                     Q(time_from=None,        time_to=None) | \
                     Q(time_from=None,        time_to__gt=time) | \
                     Q(time_from__lte=time,   time_to=None) | \
                     Q(time_from__lte=time,   time_to__gt=time))
 
-            qs = super(ManyToManyHistoryThroughManager, self).all(*args, **kwargs)
-            return qs.filter(pk__in=qs_through).distinct()
+            return self._prepare_queryset(queryset, only_pk, unique)
 
         def clear(self, *objs):
             self._clear_items(self.source_field_name, self.target_field_name, *objs)

@@ -82,18 +82,22 @@ class ManyToManyHistoryTest(TestCase):
         self.assertItemsEqual(article.publications.all(state_time5), [p1, p2])
         self.assertItemsEqual(article.publications.all(state_time6), [])
 
-        # test of added and removed
-        self.assertItemsEqual(article.publications.added(state_time2), [p1, p2])
-        self.assertItemsEqual(article.publications.removed(state_time2), [])
-        self.assertItemsEqual(article.publications.added(state_time3), [p3])
-        self.assertItemsEqual(article.publications.removed(state_time3), [p1, p2])
-        self.assertItemsEqual(article.publications.added(state_time4), [p2])
-        self.assertItemsEqual(article.publications.removed(state_time4), [])
-        self.assertItemsEqual(article.publications.added(state_time5), [p1])
-        self.assertItemsEqual(article.publications.removed(state_time5), [p3])
-        self.assertItemsEqual(article.publications.added(state_time6), [])
-        self.assertItemsEqual(article.publications.removed(state_time6), [p1, p2])
+        # test of added_at and removed
+        self.assertItemsEqual(article.publications.added_at(state_time2), [p1, p2])
+        self.assertItemsEqual(article.publications.removed_at(state_time2), [])
+        self.assertItemsEqual(article.publications.added_at(state_time3), [p3])
+        self.assertItemsEqual(article.publications.removed_at(state_time3), [p1, p2])
+        self.assertItemsEqual(article.publications.added_at(state_time4), [p2])
+        self.assertItemsEqual(article.publications.removed_at(state_time4), [])
+        self.assertItemsEqual(article.publications.added_at(state_time5), [p1])
+        self.assertItemsEqual(article.publications.removed_at(state_time5), [p3])
+        self.assertItemsEqual(article.publications.added_at(state_time6), [])
+        self.assertItemsEqual(article.publications.removed_at(state_time6), [p1, p2])
 
+        # test only_pk argument
+        self.assertItemsEqual(article.publications.all(state_time4, only_pk=True), [p2.pk, p3.pk])
+        with self.assertRaises(ValueError):
+            article.publications.all(state_time5, unique=False)
 
     def test_m2m_field_build_in(self):
         '''
