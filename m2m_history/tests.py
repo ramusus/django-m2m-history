@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
 from django.test import TestCase
 from django.db import models
+from models import ManyToManyHistoryField
+from datetime import datetime
 
 '''
-Example from Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
+Example model from Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
 '''
+
 
 class Publication(models.Model):
     title = models.CharField(max_length=30)
@@ -14,9 +18,10 @@ class Publication(models.Model):
     class Meta:
         ordering = ('title',)
 
+
 class Article(models.Model):
     headline = models.CharField(max_length=100)
-    publications = models.ManyToManyHistoryField(Publication)
+    publications = ManyToManyHistoryField(Publication)
 
     def __str__(self):              # __unicode__ on Python 2
         return self.headline
@@ -29,9 +34,71 @@ class Article(models.Model):
 Test class
 '''
 
+
 class ManyToManyHistoryTest(TestCase):
 
-    def test_m2m_field(self):
+    def test_m2m_fields_and_methods(self):
+        self.assertItemsEqual([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields], [u'id', 'time_from', 'time_to', 'article', 'publication'])
+
+    def test_m2m_field_history(self):
+
+        p1 = Publication.objects.create(title='Pub1')
+        p2 = Publication.objects.create(title='Pub2')
+        p3 = Publication.objects.create(title='Pub3')
+
+        article = Article.objects.create(headline='Article1')
+        state_time1 = datetime.now()
+
+        article.publications = [p1, p2]
+        state_time2 = article.publications.last_update_time()
+        self.assertItemsEqual(article.publications.all(), [p1, p2])
+        self.assertEqual(article.publications.through.objects.count(), 2)
+
+        article.publications = [p3]
+        state_time3 = article.publications.last_update_time()
+        self.assertItemsEqual(article.publications.all(), [p3])
+        self.assertEqual(article.publications.through.objects.count(), 3)
+
+        article.publications = [p2, p3]
+        state_time4 = article.publications.last_update_time()
+        self.assertItemsEqual(article.publications.all(), [p2, p3])
+        self.assertEqual(article.publications.through.objects.count(), 4)
+
+        article.publications = [p1, p2]
+        state_time5 = article.publications.last_update_time()
+        self.assertItemsEqual(article.publications.all(), [p1, p2])
+        self.assertEqual(article.publications.through.objects.count(), 5)
+
+        article.publications.clear()
+        state_time6 = article.publications.last_update_time()
+        self.assertItemsEqual(article.publications.all(), [])
+        self.assertEqual(article.publications.through.objects.count(), 5)
+
+        # test of history
+        self.assertItemsEqual(article.publications.all(state_time1), [])
+        self.assertItemsEqual(article.publications.all(state_time2), [p1, p2])
+        self.assertItemsEqual(article.publications.all(state_time3), [p3])
+        self.assertItemsEqual(article.publications.all(state_time4), [p2, p3])
+        self.assertItemsEqual(article.publications.all(state_time5), [p1, p2])
+        self.assertItemsEqual(article.publications.all(state_time6), [])
+
+        # test of added and removed
+        self.assertItemsEqual(article.publications.added(state_time2), [p1, p2])
+        self.assertItemsEqual(article.publications.removed(state_time2), [])
+        self.assertItemsEqual(article.publications.added(state_time3), [p3])
+        self.assertItemsEqual(article.publications.removed(state_time3), [p1, p2])
+        self.assertItemsEqual(article.publications.added(state_time4), [p2])
+        self.assertItemsEqual(article.publications.removed(state_time4), [])
+        self.assertItemsEqual(article.publications.added(state_time5), [p1])
+        self.assertItemsEqual(article.publications.removed(state_time5), [p3])
+        self.assertItemsEqual(article.publications.added(state_time6), [])
+        self.assertItemsEqual(article.publications.removed(state_time6), [p1, p2])
+
+
+    def test_m2m_field_build_in(self):
+        '''
+        Build-in test from https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
+        '''
         p1 = Publication(title='The Python Journal')
         p1.save()
         p2 = Publication(title='Science News')
@@ -47,24 +114,16 @@ class ManyToManyHistoryTest(TestCase):
         a2.save()
         a2.publications.add(p1, p2)
         a2.publications.add(p3)
-        #Adding a second time is OK:
         a2.publications.add(p3)
-        #Adding an object of the wrong type raises TypeError:
-#        a2.publications.add(a1)
-#         Traceback (most recent call last):
-#         ...
-#         TypeError: 'Publication' instance expected
-#         Create and add a Publication to an Article in one step using create():
+        with self.assertRaises(TypeError):
+            a2.publications.add(a1)
 
         p4 = a2.publications.create(title='Highlights for Children')
-        Article objects have access to their related Publication objects:
 
         self.assertItemsEqual(a1.publications.all(), [p1])
-        self.assertItemsEqual(a2.publications.all(), [p1])
-        self.assertItemsEqual(a1.publications.all(), [p4, p2, p3, p1])
-        #Publication objects have access to their related Article objects:
+        self.assertItemsEqual(a2.publications.all(), [p4, p2, p3, p1])
 
-        self.assertItemsEqual(p2.article_set.all(), [a1])
+        self.assertItemsEqual(p2.article_set.all(), [a2])
         self.assertItemsEqual(p1.article_set.all(), [a1, a2])
         self.assertItemsEqual(Publication.objects.get(id=4).article_set.all(), [a2])
 
