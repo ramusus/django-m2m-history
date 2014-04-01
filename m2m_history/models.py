@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db import models
 from django.db.models import Q
-from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
+from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
 from datetime import datetime
 from IPython.core.debugger import Pdb
 
@@ -13,10 +13,13 @@ def create_many_related_history_manager(superclass, rel):
 
     class ManyToManyHistoryThroughManager(baseManagerClass):
 
+        # time of altering transaction
         time = None
 
         def get_time(self):
-            return self.time or datetime.now()
+            if not self.time:
+                self.time = datetime.now()
+            return self.time
 
         def last_update_time(self):
             # TODO: optimize this method to one query
@@ -53,7 +56,7 @@ def create_many_related_history_manager(superclass, rel):
             }).values_list(self.target_field_name, flat=True)
             return qs
 
-        def _prepare_queryset(self, queryset, only_pk, unique):
+        def _prepare_queryset(self, queryset, only_pk=False, unique=True):
             if not only_pk:
                 if unique == False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
@@ -63,15 +66,15 @@ def create_many_related_history_manager(superclass, rel):
                 queryset = queryset.distinct()
             return queryset
 
-        def added_at(self, time, only_pk=False, unique=True):
+        def added_at(self, time, **kwargs):
             queryset = self._get_queryset_through().filter(time_from=time)
-            return self._prepare_queryset(queryset, only_pk, unique)
+            return self._prepare_queryset(queryset, **kwargs)
 
-        def removed_at(self, time, only_pk=False, unique=True):
+        def removed_at(self, time, **kwargs):
             queryset = self._get_queryset_through().filter(time_to=time)
-            return self._prepare_queryset(queryset, only_pk, unique)
+            return self._prepare_queryset(queryset, **kwargs)
 
-        def all(self, time=None, only_pk=False, unique=True):
+        def all(self, time=None, **kwargs):
             queryset = self._get_queryset_through()
 
             if time is None:
@@ -83,7 +86,7 @@ def create_many_related_history_manager(superclass, rel):
                     Q(time_from__lte=time,   time_to=None) | \
                     Q(time_from__lte=time,   time_to__gt=time))
 
-            return self._prepare_queryset(queryset, only_pk, unique)
+            return self._prepare_queryset(queryset, **kwargs)
 
         def clear(self, *objs):
             self._clear_items(self.source_field_name, self.target_field_name, *objs)
@@ -148,40 +151,42 @@ def create_many_related_history_manager(superclass, rel):
                         instance=self.instance, reverse=self.reverse,
                         model=self.model, pk_set=new_ids, using=db)
 
-#         def _remove_items(self, source_field_name, target_field_name, *objs):
-#             # source_field_name: the PK colname in join table for the source object
-#             # target_field_name: the PK colname in join table for the target object
-#             # *objs - objects to remove
-#
-#             # If there aren't any objects, there is nothing to do.
-#             if objs:
-#                 # Check that all the objects are of the right type
-#                 old_ids = set()
-#                 for obj in objs:
-#                     if isinstance(obj, self.model):
-#                         old_ids.add(self._get_fk_val(obj, target_field_name))
-#                     else:
-#                         old_ids.add(obj)
-#                 # Work out what DB we're operating on
-#                 db = router.db_for_write(self.through, instance=self.instance)
-#                 # Send a signal to the other end if need be.
-#                 if self.reverse or source_field_name == self.source_field_name:
-#                     # Don't send the signal when we are deleting the
-#                     # duplicate data row for symmetrical reverse entries.
-#                     signals.m2m_changed.send(sender=self.through, action="pre_remove",
-#                         instance=self.instance, reverse=self.reverse,
-#                         model=self.model, pk_set=old_ids, using=db)
-#                 # Remove the specified objects from the join table
-#                 self.through._default_manager.using(db).filter(**{
-#                     source_field_name: self._fk_val,
-#                     '%s__in' % target_field_name: old_ids
-#                 }).delete()
-#                 if self.reverse or source_field_name == self.source_field_name:
-#                     # Don't send the signal when we are deleting the
-#                     # duplicate data row for symmetrical reverse entries.
-#                     signals.m2m_changed.send(sender=self.through, action="post_remove",
-#                         instance=self.instance, reverse=self.reverse,
-#                         model=self.model, pk_set=old_ids, using=db)
+        def _remove_items(self, source_field_name, target_field_name, *objs):
+            # source_field_name: the PK colname in join table for the source object
+            # target_field_name: the PK colname in join table for the target object
+            # *objs - objects to remove
+
+            # If there aren't any objects, there is nothing to do.
+            if objs:
+                # Check that all the objects are of the right type
+                old_ids = set()
+                for obj in objs:
+                    if isinstance(obj, self.model):
+                        old_ids.add(self._get_fk_val(obj, target_field_name))
+                    else:
+                        old_ids.add(obj)
+                # Work out what DB we're operating on
+                db = router.db_for_write(self.through, instance=self.instance)
+                # Send a signal to the other end if need be.
+                if self.reverse or source_field_name == self.source_field_name:
+                    # Don't send the signal when we are deleting the
+                    # duplicate data row for symmetrical reverse entries.
+                    signals.m2m_changed.send(sender=self.through, action="pre_remove",
+                        instance=self.instance, reverse=self.reverse,
+                        model=self.model, pk_set=old_ids, using=db)
+                # Remove the specified objects from the join table
+                qs = self.through._default_manager.using(db).filter(**{
+                    source_field_name: self._fk_val,
+                    '%s__in' % target_field_name: old_ids,
+                    'time_to': None,
+                })
+                qs.update(time_to=self.get_time())
+                if self.reverse or source_field_name == self.source_field_name:
+                    # Don't send the signal when we are deleting the
+                    # duplicate data row for symmetrical reverse entries.
+                    signals.m2m_changed.send(sender=self.through, action="post_remove",
+                        instance=self.instance, reverse=self.reverse,
+                        model=self.model, pk_set=old_ids, using=db)
 
         def _clear_items(self, source_field_name, target_field_name, *objs):
             db = router.db_for_write(self.through, instance=self.instance)
@@ -212,13 +217,18 @@ def create_many_related_history_manager(superclass, rel):
 class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescriptor):
     @cached_property
     def related_manager_cls(self):
-        # Return our own manager inherited from the build-in
+        '''
+        Difference from super method is return our own manager inherited from the build-in
+        '''
         return create_many_related_history_manager(
             self.field.rel.to._default_manager.__class__,
             self.field.rel
         )
 
     def __set__(self, instance, value):
+        '''
+        Difference from super method is send value to `clear` method as well as to `add` method
+        '''
         if instance is None:
             raise AttributeError("Manager must be accessed via instance")
 
@@ -227,7 +237,33 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
             raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model.  Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
 
         manager = self.__get__(instance)
-        manager.time = datetime.now()
+        manager.clear(*value)
+        manager.add(*value)
+
+
+class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
+    @cached_property
+    def related_manager_cls(self):
+        '''
+        Difference from super method is return our own manager inherited from the build-in
+        '''
+        return create_many_related_history_manager(
+            self.related.model._default_manager.__class__,
+            self.related.field.rel
+        )
+
+    def __set__(self, instance, value):
+        '''
+        Difference from super method is send value to `clear` method as well as to `add` method
+        '''
+        if instance is None:
+            raise AttributeError("Manager must be accessed via instance")
+
+        if not self.related.field.rel.through._meta.auto_created:
+            opts = self.related.field.rel.through._meta
+            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
+
+        manager = self.__get__(instance)
         manager.clear(*value)
         manager.add(*value)
 
@@ -235,11 +271,22 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 class ManyToManyHistoryField(models.ManyToManyField):
 
     def contribute_to_class(self, cls, name):
+        '''
+        Call super method and remove unique_together, add time fields and change descriptor class
+        '''
         super(ManyToManyHistoryField, self).contribute_to_class(cls, name)
 
-        # remove unique_together add time fields
         self.rel.through._meta.unique_together = ()
         self.rel.through.add_to_class('time_from', models.DateTimeField(u'Datetime from', null=True, db_index=True))
         self.rel.through.add_to_class('time_to',  models.DateTimeField(u'Datetime to', null=True, db_index=True))
 
         setattr(cls, self.name, ReverseManyRelatedObjectsHistoryDescriptor(self))
+
+    def contribute_to_related_class(self, cls, related):
+        '''
+        Change descriptor class
+        '''
+        super(ManyToManyHistoryField, self).contribute_to_related_class(cls, related)
+
+        if not self.rel.is_hidden() and not related.model._meta.swapped:
+            setattr(cls, related.get_accessor_name(), ManyRelatedObjectsHistoryDescriptor(related))
