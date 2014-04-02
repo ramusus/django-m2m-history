@@ -110,32 +110,20 @@ Get objects of history states by timestamps:
 
 Get added and removed objects of history states by timestamps:
 
-    >>> article.publications.added_at(state_time2)
-    [<Publication: Pub1>, <Publication: Pub2>]
-    >>> article.publications.removed_at(state_time2)
-    []
-
     >>> article.publications.added_at(state_time3)
     [<Publication: Pub3>]
+
     >>> article.publications.removed_at(state_time3)
     [<Publication: Pub1>, <Publication: Pub2>]
 
     >>> article.publications.added_at(state_time4)
     [<Publication: Pub1>, <Publication: Pub2>]
-    >>> article.publications.removed_at(state_time4)
-    []
 
-    >>> article.publications.added_at(state_time5)
-    []
     >>> article.publications.removed_at(state_time5)
     [<Publication: Pub1>, <Publication: Pub2>]
 
     >>> article.publications.added_at(state_time6)
     [<Publication: Pub1>, <Publication: Pub2>]
+
     >>> article.publications.removed_at(state_time6)
     [<Publication: Pub3>]
-
-    >>> article.publications.added_at(state_time7)
-    []
-    >>> article.publications.removed_at(state_time7)
-    [<Publication: Pub1>, <Publication: Pub2>]

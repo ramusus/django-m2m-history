@@ -79,7 +79,8 @@ class ManyToManyHistoryTest(TestCase):
 
         # test of history
         self.assertItemsEqual(article.publications.all(state_time1), [])
-        print article.publications.all(state_time2)
+        print state_time2
+        print [m.__dict__ for m in article.publications.through.objects.all()]
         self.assertItemsEqual(article.publications.all(state_time2), [p1, p2])
         self.assertItemsEqual(article.publications.all(state_time3), [p3])
         self.assertItemsEqual(article.publications.all(state_time4), [p1, p2, p3])
