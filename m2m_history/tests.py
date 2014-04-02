@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.db import models
 from models import ManyToManyHistoryField
 from datetime import datetime
+import time
 
 '''
 Example model from Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
@@ -46,41 +47,48 @@ class ManyToManyHistoryTest(TestCase):
 
         article = Article.objects.create(headline='Article1')
         state_time1 = datetime.now()
+        # we need to use sleep here to pass travis mysql tests, becouse Django + mysql doesn't support storing microseconds
+        # and as result our state_timeX will be equal
+        time.sleep(1)
 
         article.publications = [p1, p2]
         state_time2 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2])
         self.assertEqual(article.publications.through.objects.count(), 2)
+        time.sleep(1)
 
         article.publications = [p3]
         state_time3 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p3])
         self.assertEqual(article.publications.through.objects.count(), 3)
+        time.sleep(1)
 
         article.publications.add(p2, p1)
         state_time4 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2, p3])
         self.assertEqual(article.publications.through.objects.count(), 5)
+        time.sleep(1)
 
         article.publications.remove(p2, p1)
         state_time5 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p3])
         self.assertEqual(article.publications.through.objects.count(), 5)
+        time.sleep(1)
 
         article.publications = [p1, p2]
         state_time6 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2])
         self.assertEqual(article.publications.through.objects.count(), 7)
+        time.sleep(1)
 
         article.publications.clear()
         state_time7 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [])
         self.assertEqual(article.publications.through.objects.count(), 7)
+        time.sleep(1)
 
         # test of history
         self.assertItemsEqual(article.publications.all(state_time1), [])
-        print state_time2
-        print [m.__dict__ for m in article.publications.through.objects.all()]
         self.assertItemsEqual(article.publications.all(state_time2), [p1, p2])
         self.assertItemsEqual(article.publications.all(state_time3), [p3])
         self.assertItemsEqual(article.publications.all(state_time4), [p1, p2, p3])
