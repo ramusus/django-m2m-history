@@ -3,4 +3,4 @@ include LICENSE
 include MANIFEST.in
 include quicktest.py
 include settings_test.py
-recursive-include many_to_many_history *
+recursive-include m2m_history *

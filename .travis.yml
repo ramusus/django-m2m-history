@@ -20,7 +20,7 @@ install:
   - pip install . --use-mirrors
 script:
   - django-admin.py --version
-  - coverage run --source=many_to_many_history quicktest.py many_to_many_history
+  - coverage run --source=m2m_history quicktest.py m2m_history
 after_success:
   - coveralls
 notifications:
