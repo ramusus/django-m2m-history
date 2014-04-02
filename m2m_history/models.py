@@ -287,5 +287,6 @@ class ManyToManyHistoryField(models.ManyToManyField):
         '''
         super(ManyToManyHistoryField, self).contribute_to_related_class(cls, related)
 
-        if not self.rel.is_hidden() and not related.model._meta.swapped:
+        # `swapped` attribute is not present before Django 1.5
+        if not self.rel.is_hidden() and not getattr(related.model._meta, 'swapped', None):
             setattr(cls, related.get_accessor_name(), ManyRelatedObjectsHistoryDescriptor(related))
