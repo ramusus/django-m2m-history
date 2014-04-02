@@ -38,7 +38,7 @@ class ManyToManyHistoryTest(TestCase):
     def test_m2m_fields_and_methods(self):
         self.assertItemsEqual([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields], [u'id', 'time_from', 'time_to', 'article', 'publication'])
 
-    def test_m2m_field_history(self):
+    def test_m2m_history_features(self):
 
         p1 = Publication.objects.create(title='Pub1')
         p2 = Publication.objects.create(title='Pub2')
@@ -105,7 +105,7 @@ class ManyToManyHistoryTest(TestCase):
         with self.assertRaises(ValueError):
             article.publications.all(state_time5, unique=False)
 
-    def test_m2m_field_build_in(self):
+    def test_m2m_default_features(self):
         '''
         Build-in test from https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
         '''
@@ -129,7 +129,6 @@ class ManyToManyHistoryTest(TestCase):
             a2.publications.add(a1)
 
         p4 = a2.publications.create(title='Highlights for Children')
-
         self.assertItemsEqual(a1.publications.all(), [p1])
         self.assertItemsEqual(a2.publications.all(), [p4, p2, p3, p1])
 
@@ -229,9 +228,9 @@ class ManyToManyHistoryTest(TestCase):
         q = Article.objects.filter(headline__startswith='Django')
         self.assertItemsEqual(q, [a1])
         q.delete()
+
         # After the delete(), the QuerySet cache needs to be cleared, and the referenced objects should be gone:
         self.assertItemsEqual(q, [])
-
         self.assertItemsEqual(p1.article_set.all(), [a2])
 
         # An alternate to calling clear() is to assign the empty set:
