@@ -47,43 +47,43 @@ Create objects and relations betweeen them:
     >>> state_time2 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>]
-    >>> article.publications.through.objects.count() == 2
-    True
+    >>> article.publications.through.objects.count()
+    2
 
     >>> article.publications = [p3]
     >>> state_time3 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub3>]
-    >>> article.publications.through.objects.count() == 3
-    True
+    >>> article.publications.through.objects.count()
+    3
 
     >>> article.publications.add(p2, p1)
     >>> state_time4 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>, <Publication: Pub3>]
-    >>> article.publications.through.objects.count() == 5
-    True
+    >>> article.publications.through.objects.count()
+    5
 
     >>> article.publications.remove(p2, p1)
     >>> state_time5 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub3>]
-    >>> article.publications.through.objects.count() == 5
-    True
+    >>> article.publications.through.objects.count()
+    5
 
     >>> article.publications = [p1, p2]
     >>> state_time6 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>]
-    >>> article.publications.through.objects.count() == 7
-    True
+    >>> article.publications.through.objects.count()
+    7
 
     >>> article.publications.clear()
     >>> state_time7 = article.publications.last_update_time()
     >>> article.publications.all()
     []
-    >>> article.publications.through.objects.count() == 7
-    True
+    >>> article.publications.through.objects.count()
+    7
 
 Get objects of history states by timestamps:
 

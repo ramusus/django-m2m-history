@@ -3,7 +3,6 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
 from datetime import datetime
-from IPython.core.debugger import Pdb
 
 __all__ = ['ManyToManyHistoryField']
 
