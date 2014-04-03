@@ -2,6 +2,7 @@
 from django.db import models
 from descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedObjectsHistoryDescriptor
 
+__all__ = ['ManyToManyHistoryField']
 
 class ManyToManyHistoryField(models.ManyToManyField):
 
@@ -61,5 +62,8 @@ class ManyToManyHistoryField(models.ManyToManyField):
 # from south.modelsinspector import add_introspection_rules
 # add_introspection_rules(rules, ["^m2m_history\.fields\.ManyToManyHistoryField"])
 
-from south.modelsinspector import add_introspection_rules
-add_introspection_rules([], ["^m2m_history\.fields\.ManyToManyHistoryField"])
+try:
+    from south.modelsinspector import add_introspection_rules
+    add_introspection_rules([], ["^m2m_history\.fields\.ManyToManyHistoryField"])
+except ImportError:
+    pass
