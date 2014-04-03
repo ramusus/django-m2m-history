@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase
 from django.db import models
-from models import ManyToManyHistoryField
+from fields import ManyToManyHistoryField
 from datetime import datetime
 import time
 
@@ -54,47 +54,53 @@ class ManyToManyHistoryTest(TestCase):
         article.publications = [p1, p2]
         state_time2 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2])
+        self.assertEqual(article.publications.count(), 2)
         self.assertEqual(article.publications.through.objects.count(), 2)
         time.sleep(1)
 
         article.publications = [p3]
         state_time3 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p3])
+        self.assertEqual(article.publications.count(), 1)
         self.assertEqual(article.publications.through.objects.count(), 3)
         time.sleep(1)
 
         article.publications.add(p2, p1)
         state_time4 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2, p3])
+        self.assertEqual(article.publications.count(), 3)
         self.assertEqual(article.publications.through.objects.count(), 5)
         time.sleep(1)
 
         article.publications.remove(p2, p1)
         state_time5 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p3])
+        self.assertEqual(article.publications.count(), 1)
         self.assertEqual(article.publications.through.objects.count(), 5)
         time.sleep(1)
 
         article.publications = [p1, p2]
         state_time6 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [p1, p2])
+        self.assertEqual(article.publications.count(), 2)
         self.assertEqual(article.publications.through.objects.count(), 7)
         time.sleep(1)
 
         article.publications.clear()
         state_time7 = article.publications.last_update_time()
         self.assertItemsEqual(article.publications.all(), [])
+        self.assertEqual(article.publications.count(), 0)
         self.assertEqual(article.publications.through.objects.count(), 7)
         time.sleep(1)
 
         # test of history
-        self.assertItemsEqual(article.publications.all(state_time1), [])
-        self.assertItemsEqual(article.publications.all(state_time2), [p1, p2])
-        self.assertItemsEqual(article.publications.all(state_time3), [p3])
-        self.assertItemsEqual(article.publications.all(state_time4), [p1, p2, p3])
-        self.assertItemsEqual(article.publications.all(state_time5), [p3])
-        self.assertItemsEqual(article.publications.all(state_time6), [p1, p2])
-        self.assertItemsEqual(article.publications.all(state_time7), [])
+        self.assertItemsEqual(article.publications.were_at(state_time1), [])
+        self.assertItemsEqual(article.publications.were_at(state_time2), [p1, p2])
+        self.assertItemsEqual(article.publications.were_at(state_time3), [p3])
+        self.assertItemsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
+        self.assertItemsEqual(article.publications.were_at(state_time5), [p3])
+        self.assertItemsEqual(article.publications.were_at(state_time6), [p1, p2])
+        self.assertItemsEqual(article.publications.were_at(state_time7), [])
 
         # test of added_at and removed
         self.assertItemsEqual(article.publications.added_at(state_time2), [p1, p2])
@@ -111,9 +117,9 @@ class ManyToManyHistoryTest(TestCase):
         self.assertItemsEqual(article.publications.removed_at(state_time7), [p1, p2])
 
         # test different arguments
-        self.assertItemsEqual(article.publications.all(state_time4, only_pk=True), map(lambda o: o.pk, article.publications.all(state_time4)))
+        self.assertItemsEqual(article.publications.were_at(state_time4, only_pk=True), map(lambda o: o.pk, article.publications.were_at(state_time4)))
         with self.assertRaises(ValueError):
-            article.publications.all(state_time5, unique=False)
+            article.publications.were_at(state_time5, unique=False)
 
     def test_m2m_default_features(self):
         '''

@@ -47,6 +47,8 @@ Create objects and relations betweeen them:
     >>> state_time2 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>]
+    >>> article.publications.count()
+    2
     >>> article.publications.through.objects.count()
     2
 
@@ -54,6 +56,8 @@ Create objects and relations betweeen them:
     >>> state_time3 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub3>]
+    >>> article.publications.count()
+    1
     >>> article.publications.through.objects.count()
     3
 
@@ -61,6 +65,8 @@ Create objects and relations betweeen them:
     >>> state_time4 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>, <Publication: Pub3>]
+    >>> article.publications.count()
+    3
     >>> article.publications.through.objects.count()
     5
 
@@ -68,6 +74,8 @@ Create objects and relations betweeen them:
     >>> state_time5 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub3>]
+    >>> article.publications.count()
+    1
     >>> article.publications.through.objects.count()
     5
 
@@ -75,6 +83,8 @@ Create objects and relations betweeen them:
     >>> state_time6 = article.publications.last_update_time()
     >>> article.publications.all()
     [<Publication: Pub1>, <Publication: Pub2>]
+    >>> article.publications.count()
+    2
     >>> article.publications.through.objects.count()
     7
 
@@ -82,30 +92,32 @@ Create objects and relations betweeen them:
     >>> state_time7 = article.publications.last_update_time()
     >>> article.publications.all()
     []
+     >>> article.publications.count()
+    0
     >>> article.publications.through.objects.count()
     7
 
 Get objects of history states by timestamps:
 
-    >>> article.publications.all(state_time1)
+    >>> article.publications.were_at(state_time1)
     []
 
-    >>> article.publications.all(state_time2)
+    >>> article.publications.were_at(state_time2)
     [<Publication: Pub1>, <Publication: Pub2>]
 
-    >>> article.publications.all(state_time3)
+    >>> article.publications.were_at(state_time3)
     [<Publication: Pub3>]
 
-    >>> article.publications.all(state_time4)
+    >>> article.publications.were_at(state_time4)
     [<Publication: Pub1>, <Publication: Pub2>, <Publication: Pub3>]
 
-    >>> article.publications.all(state_time5)
+    >>> article.publications.were_at(state_time5)
     [<Publication: Pub3>]
 
-    >>> article.publications.all(state_time6)
+    >>> article.publications.were_at(state_time6)
     [<Publication: Pub1>, <Publication: Pub2>]
 
-    >>> article.publications.all(state_time7)
+    >>> article.publications.were_at(state_time7)
     []
 
 Get added and removed objects of history states by timestamps:
