@@ -20,10 +20,7 @@ def create_many_related_history_manager(superclass, rel):
 
         def last_update_time(self):
             # TODO: optimize this method to one query
-            db = router.db_for_write(self.through, instance=self.instance)
-            qs = self.through._default_manager.using(db).filter(**{
-                self.source_field_name: self._fk_val,
-            })
+            qs = self.get_query_set_through()
             try:
                 time_to = qs.exclude(time_to=None).order_by('-time_to')[0].time_to
                 time_from = qs.exclude(time_from=None).order_by('-time_from')[0].time_from
@@ -51,7 +48,8 @@ def create_many_related_history_manager(superclass, rel):
             if not only_pk:
                 if unique == False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().filter(pk__in=queryset)
+                db = router.db_for_write(self.through, instance=self.instance)
+                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(db).filter(pk__in=queryset)
 
             if unique:
                 queryset = queryset.distinct()
