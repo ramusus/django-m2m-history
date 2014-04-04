@@ -4,6 +4,7 @@ from descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedO
 
 __all__ = ['ManyToManyHistoryField']
 
+
 class ManyToManyHistoryField(models.ManyToManyField):
 
     def contribute_to_class(self, cls, name):
@@ -33,34 +34,6 @@ class ManyToManyHistoryField(models.ManyToManyField):
 #     def _get_m2m_db_table(self, opts):
 #         db_table = super(ManyToManyHistoryField, self)._get_m2m_db_table(opts)
 #         return db_table + '_history'
-
-#     def south_field_triple(self):
-#         "Returns a suitable description of this field for South."
-#         # We'll just introspect the _actual_ field.
-#         from south.modelsinspector import introspector
-#         field_class = self.__class__.__module__ + "." + self.__class__.__name__
-#         args, kwargs = introspector(self)
-#         # That's our definition!
-#         print (field_class, args, kwargs)
-#         return (field_class, args, kwargs)
-
-
-# rules = [
-#     (
-#         (ManyToManyHistoryField,),
-#         [],
-#         {
-#             "to": ["rel.to", {}],
-#             "symmetrical": ["rel.symmetrical", {"default": True}],
-#             "related_name": ["rel.related_name", {"default": None}],
-#             "db_table": ["db_table", {"default": None}],
-#             # TODO: Kind of ugly to add this one-time-only option
-#             "through": ["rel.through", {"ignore_if_auto_through": True}],
-#         },
-#     ),
-# ]
-# from south.modelsinspector import add_introspection_rules
-# add_introspection_rules(rules, ["^m2m_history\.fields\.ManyToManyHistoryField"])
 
 try:
     from south.modelsinspector import add_introspection_rules

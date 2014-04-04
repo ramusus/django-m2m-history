@@ -46,14 +46,8 @@ def create_many_related_history_manager(superclass, rel):
             qs = self.filter(group=group, **kwargs)
             return self._prepare_qs(qs, unique)
 
-        def _get_queryset_through(self):
-            db = router.db_for_write(self.through, instance=self.instance)
-            qs = self.through._default_manager.using(db).filter(**{
-                self.source_field_name: self._fk_val,
-            }).values_list(self.target_field_name, flat=True)
-            return qs
-
         def _prepare_queryset(self, queryset, only_pk=False, unique=True):
+            queryset = queryset.values_list(self.target_field_name, flat=True)
             if not only_pk:
                 if unique == False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
@@ -64,11 +58,18 @@ def create_many_related_history_manager(superclass, rel):
             return queryset
 
         def get_query_set(self, **kwargs):
-            queryset = self._get_queryset_through().filter(time_to=None)
+            queryset = self.get_query_set_through().filter(time_to=None)
             return self._prepare_queryset(queryset, **kwargs)
 
+        def get_query_set_through(self):
+            db = router.db_for_write(self.through, instance=self.instance)
+            qs = self.through._default_manager.using(db).filter(**{
+                self.source_field_name: self._fk_val,
+            })
+            return qs
+
         def were_at(self, time, **kwargs):
-            queryset = self._get_queryset_through()
+            queryset = self.get_query_set_through()
             queryset = queryset.filter(
                 Q(time_from=None,        time_to=None) | \
                 Q(time_from=None,        time_to__gt=time) | \
@@ -77,11 +78,11 @@ def create_many_related_history_manager(superclass, rel):
             return self._prepare_queryset(queryset, **kwargs)
 
         def added_at(self, time, **kwargs):
-            queryset = self._get_queryset_through().filter(time_from=time)
+            queryset = self.get_query_set_through().filter(time_from=time)
             return self._prepare_queryset(queryset, **kwargs)
 
         def removed_at(self, time, **kwargs):
-            queryset = self._get_queryset_through().filter(time_to=time)
+            queryset = self.get_query_set_through().filter(time_to=time)
             return self._prepare_queryset(queryset, **kwargs)
 
         def clear(self, *objs):
