@@ -2,6 +2,7 @@
 from django.db import models
 from django.db.models import Q
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
+from signals import m2m_history_changed
 from datetime import datetime
 
 
@@ -91,6 +92,20 @@ def create_many_related_history_manager(superclass, rel):
                 self._clear_items(self.target_field_name, self.source_field_name, *objs)
         clear.alters_data = True
 
+        def send_signal(self, source_field_name, action, ids):
+            if self.reverse or source_field_name == self.source_field_name:
+                # Don't send the signal when we are inserting the
+                # duplicate data row for symmetrical reverse entries.
+                db = router.db_for_write(self.through, instance=self.instance)
+
+                signals.m2m_changed.send(sender=self.through, action=action,
+                    instance=self.instance, reverse=self.reverse,
+                    model=self.model, pk_set=ids, using=db)
+
+                m2m_history_changed.send(sender=self.through, action=action,
+                    instance=self.instance, reverse=self.reverse,
+                    model=self.model, pk_set=ids, time=self.get_time(), using=db)
+
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
             # target_field_name: the PK fieldname in join table for the target object
@@ -123,12 +138,8 @@ def create_many_related_history_manager(superclass, rel):
                 })
                 new_ids = new_ids - set(vals)
 
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are inserting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=self.through, action='pre_add',
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=new_ids, using=db)
+                self.send_signal(source_field_name, 'pew_add', new_ids)
+
                 # Add the ones that aren't there already
                 self.through._default_manager.using(db).bulk_create([
                     self.through(**{
@@ -139,12 +150,7 @@ def create_many_related_history_manager(superclass, rel):
                     for obj_id in new_ids
                 ])
 
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are inserting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=self.through, action='post_add',
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=new_ids, using=db)
+                self.send_signal(source_field_name, 'post_add', new_ids)
 
         def _remove_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK colname in join table for the source object
@@ -162,13 +168,9 @@ def create_many_related_history_manager(superclass, rel):
                         old_ids.add(obj)
                 # Work out what DB we're operating on
                 db = router.db_for_write(self.through, instance=self.instance)
-                # Send a signal to the other end if need be.
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are deleting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=self.through, action="pre_remove",
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=old_ids, using=db)
+
+                self.send_signal(source_field_name, 'pre_remove', old_ids)
+
                 # Remove the specified objects from the join table
                 qs = self.through._default_manager.using(db).filter(**{
                     source_field_name: self._fk_val,
@@ -176,22 +178,15 @@ def create_many_related_history_manager(superclass, rel):
                     'time_to': None,
                 })
                 qs.update(time_to=self.get_time())
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are deleting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=self.through, action="post_remove",
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=old_ids, using=db)
+
+                self.send_signal(source_field_name, 'post_remove', old_ids)
 
         def _clear_items(self, source_field_name, target_field_name, *objs):
             db = router.db_for_write(self.through, instance=self.instance)
             # source_field_name: the PK colname in join table for the source object
-            if self.reverse or source_field_name == self.source_field_name:
-                # Don't send the signal when we are clearing the
-                # duplicate data rows for symmetrical reverse entries.
-                signals.m2m_changed.send(sender=self.through, action="pre_clear",
-                    instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=None, using=db)
+
+            self.send_signal(source_field_name, 'pre_clear', None)
+
             qs = self.through._default_manager.using(db).filter(**{
                 source_field_name: self._fk_val,
                 'time_to': None,
@@ -199,12 +194,8 @@ def create_many_related_history_manager(superclass, rel):
                 '%s__in' % target_field_name: [obj.pk for obj in objs]
             })
             qs.update(time_to=self.get_time())
-            if self.reverse or source_field_name == self.source_field_name:
-                # Don't send the signal when we are clearing the
-                # duplicate data rows for symmetrical reverse entries.
-                signals.m2m_changed.send(sender=self.through, action="post_clear",
-                    instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=None, using=db)
+
+            self.send_signal(source_field_name, 'post_clear', None)
 
     return ManyToManyHistoryThroughManager
 
