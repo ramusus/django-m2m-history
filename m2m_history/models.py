@@ -12,6 +12,7 @@ class ManyToManyHistoryCache(models.Model):
     field_name = models.CharField(max_length=50, db_index=True)
     time = models.DateTimeField(db_index=True)
 
+    count = models.PositiveIntegerField(default=0)
     added_count = models.PositiveIntegerField(default=0)
     removed_count = models.PositiveIntegerField(default=0)
 
@@ -21,6 +22,7 @@ def save_m2m_history_cache(sender, action, instance, reverse, pk_set, field_name
     need_to_cache = not reverse and instance._meta.get_field(field_name).cache
     if need_to_cache and action in ['post_add', 'post_remove', 'post_clear'] and len(pk_set):
         cache = ManyToManyHistoryCache.objects.get_or_create(content_type=ContentType.objects.get_for_model(instance), field_name=field_name, time=time)[0]
+        cache.count = getattr(instance, field_name).get_query_set(only_pk=True).count()
         if action in ['post_add']:
             cache.added_count = len(pk_set)
         elif action in ['post_remove', 'post_clear']:
