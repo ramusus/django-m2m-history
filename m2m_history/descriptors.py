@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
 from signals import m2m_history_changed
-from models import ManyToManyHistoryCache
+from models import ManyToManyHistoryVersion
 from datetime import datetime
 
 
@@ -17,7 +17,7 @@ def create_many_related_history_manager(superclass, rel):
         time = None
 
         def get_cache(self, time):
-            return ManyToManyHistoryCache.objects.get(content_type=ContentType.objects.get_for_model(self.instance), field_name=self.prefetch_cache_name, time=time)
+            return ManyToManyHistoryVersion.objects.get(content_type=ContentType.objects.get_for_model(self.instance), field_name=self.prefetch_cache_name, time=time)
 
         def get_time(self):
             if not self.time:

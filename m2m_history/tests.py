@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.db import models
 from fields import ManyToManyHistoryField
 from datetime import datetime
-from models import ManyToManyHistoryCache
+from models import ManyToManyHistoryVersion
 import time
 
 '''
@@ -112,7 +112,7 @@ class ManyToManyHistoryTest(TestCase):
             article.publications.were_at(state_time5, unique=False)
 
         # test caches
-        self.assertEqual(ManyToManyHistoryCache.objects.count(), 6)
+        self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
             cache = article.publications.get_cache(time=state_time)
@@ -121,7 +121,7 @@ class ManyToManyHistoryTest(TestCase):
             self.assertEqual(cache.removed_count,   article.publications.removed_at(state_time).count())
 
         article.publications_no_cache = [p1, p2]
-        self.assertEqual(ManyToManyHistoryCache.objects.count(), 6)
+        self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
 
     def test_m2m_default_features(self):
         '''
