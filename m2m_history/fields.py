@@ -7,6 +7,10 @@ __all__ = ['ManyToManyHistoryField']
 
 class ManyToManyHistoryField(models.ManyToManyField):
 
+    def __init__(self, *args, **kwargs):
+        self.cache = kwargs.pop('cache', False)
+        super(ManyToManyHistoryField, self).__init__(*args, **kwargs)
+
     def contribute_to_class(self, cls, name):
         '''
         Call super method and remove unique_together, add time fields and change descriptor class

@@ -104,7 +104,8 @@ def create_many_related_history_manager(superclass, rel):
 
                 m2m_history_changed.send(sender=self.through, action=action,
                     instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=ids, time=self.get_time(), using=db)
+                    model=self.model, pk_set=ids, using=db,
+                    field_name=self.prefetch_cache_name, time=self.get_time())
 
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
@@ -138,7 +139,7 @@ def create_many_related_history_manager(superclass, rel):
                 })
                 new_ids = new_ids - set(vals)
 
-                self.send_signal(source_field_name, 'pew_add', new_ids)
+                self.send_signal(source_field_name, 'pre_add', new_ids)
 
                 # Add the ones that aren't there already
                 self.through._default_manager.using(db).bulk_create([
@@ -195,7 +196,7 @@ def create_many_related_history_manager(superclass, rel):
             })
             qs.update(time_to=self.get_time())
 
-            self.send_signal(source_field_name, 'post_clear', None)
+            self.send_signal(source_field_name, 'post_clear', set(self.removed_at(self.get_time(), only_pk=True)))
 
     return ManyToManyHistoryThroughManager
 

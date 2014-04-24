@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from fields import ManyToManyHistoryField
 from datetime import datetime
+from models import ManyToManyHistoryCountsCache
 import time
 
 '''
@@ -12,22 +14,11 @@ Example model from Django docs: https://docs.djangoproject.com/en/dev/topics/db/
 class Publication(models.Model):
     title = models.CharField(max_length=30)
 
-    def __str__(self):              # __unicode__ on Python 2
-        return self.title
-
-    class Meta:
-        ordering = ('title',)
-
 
 class Article(models.Model):
     headline = models.CharField(max_length=100)
-    publications = ManyToManyHistoryField(Publication)
-
-    def __str__(self):              # __unicode__ on Python 2
-        return self.headline
-
-    class Meta:
-        ordering = ('headline',)
+    publications = ManyToManyHistoryField(Publication, cache=True)
+    publications_no_cache = ManyToManyHistoryField(Publication, related_name='articles_no_cache')
 
 
 '''
@@ -120,6 +111,17 @@ class ManyToManyHistoryTest(TestCase):
         self.assertItemsEqual(article.publications.were_at(state_time4, only_pk=True), map(lambda o: o.pk, article.publications.were_at(state_time4)))
         with self.assertRaises(ValueError):
             article.publications.were_at(state_time5, unique=False)
+
+        # test caches
+        self.assertEqual(ManyToManyHistoryCountsCache.objects.count(), 6)
+        for i in range(2, 8):
+            state_time = locals()['state_time%d' % i]
+            cache = ManyToManyHistoryCountsCache.objects.get(content_type=ContentType.objects.get_for_model(article), field_name='publications', time=state_time)
+            self.assertEqual(cache.added_count, article.publications.added_at(state_time).count())
+            self.assertEqual(cache.removed_count, article.publications.removed_at(state_time).count())
+
+        article.publications_no_cache = [p1, p2]
+        self.assertEqual(ManyToManyHistoryCountsCache.objects.count(), 6)
 
     def test_m2m_default_features(self):
         '''
