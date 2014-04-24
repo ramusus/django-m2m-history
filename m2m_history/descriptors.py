@@ -16,8 +16,9 @@ def create_many_related_history_manager(superclass, rel):
         # time of altering transaction
         time = None
 
-        def get_version(self, time):
-            return ManyToManyHistoryVersion.objects.get(content_type=ContentType.objects.get_for_model(self.instance), field_name=self.prefetch_cache_name, time=time)
+        @property
+        def versions(self):
+            return ManyToManyHistoryVersion.objects.filter(content_type=ContentType.objects.get_for_model(self.instance), object_id=self.instance.pk, field_name=self.prefetch_cache_name)
 
         def get_time(self):
             if not self.time:

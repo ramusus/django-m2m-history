@@ -115,7 +115,7 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
-            version = article.publications.get_version(time=state_time)
+            version = article.publications.versions.get(time=state_time)
             self.assertItemsEqual(version.items,    article.publications.were_at(state_time))
             self.assertItemsEqual(version.added,    article.publications.added_at(state_time))
             self.assertItemsEqual(version.removed,  article.publications.removed_at(state_time))
