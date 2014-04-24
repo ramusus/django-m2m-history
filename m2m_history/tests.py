@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from fields import ManyToManyHistoryField
 from datetime import datetime
-from models import ManyToManyHistoryCountsCache
+from models import ManyToManyHistoryCache
 import time
 
 '''
@@ -113,15 +112,15 @@ class ManyToManyHistoryTest(TestCase):
             article.publications.were_at(state_time5, unique=False)
 
         # test caches
-        self.assertEqual(ManyToManyHistoryCountsCache.objects.count(), 6)
+        self.assertEqual(ManyToManyHistoryCache.objects.count(), 6)
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
-            cache = ManyToManyHistoryCountsCache.objects.get(content_type=ContentType.objects.get_for_model(article), field_name='publications', time=state_time)
+            cache = article.publications.get_cache(time=state_time)
             self.assertEqual(cache.added_count, article.publications.added_at(state_time).count())
             self.assertEqual(cache.removed_count, article.publications.removed_at(state_time).count())
 
         article.publications_no_cache = [p1, p2]
-        self.assertEqual(ManyToManyHistoryCountsCache.objects.count(), 6)
+        self.assertEqual(ManyToManyHistoryCache.objects.count(), 6)
 
     def test_m2m_default_features(self):
         '''

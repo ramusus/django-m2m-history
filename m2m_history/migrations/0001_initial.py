@@ -8,8 +8,8 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'ManyToManyHistoryCountsCache'
-        db.create_table(u'm2m_history_manytomanyhistorycountscache', (
+        # Adding model 'ManyToManyHistoryCache'
+        db.create_table(u'm2m_history_manytomanyhistorycache', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
             ('field_name', self.gf('django.db.models.fields.CharField')(max_length=50, db_index=True)),
@@ -17,18 +17,18 @@ class Migration(SchemaMigration):
             ('added_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('removed_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
         ))
-        db.send_create_signal(u'm2m_history', ['ManyToManyHistoryCountsCache'])
+        db.send_create_signal(u'm2m_history', ['ManyToManyHistoryCache'])
 
-        # Adding unique constraint on 'ManyToManyHistoryCountsCache', fields ['content_type', 'field_name', 'time']
-        db.create_unique(u'm2m_history_manytomanyhistorycountscache', ['content_type_id', 'field_name', 'time'])
+        # Adding unique constraint on 'ManyToManyHistoryCache', fields ['content_type', 'field_name', 'time']
+        db.create_unique(u'm2m_history_manytomanyhistorycache', ['content_type_id', 'field_name', 'time'])
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ManyToManyHistoryCountsCache', fields ['content_type', 'field_name', 'time']
-        db.delete_unique(u'm2m_history_manytomanyhistorycountscache', ['content_type_id', 'field_name', 'time'])
+        # Removing unique constraint on 'ManyToManyHistoryCache', fields ['content_type', 'field_name', 'time']
+        db.delete_unique(u'm2m_history_manytomanyhistorycache', ['content_type_id', 'field_name', 'time'])
 
-        # Deleting model 'ManyToManyHistoryCountsCache'
-        db.delete_table(u'm2m_history_manytomanyhistorycountscache')
+        # Deleting model 'ManyToManyHistoryCache'
+        db.delete_table(u'm2m_history_manytomanyhistorycache')
 
 
     models = {
@@ -39,8 +39,8 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        u'm2m_history.manytomanyhistorycountscache': {
-            'Meta': {'unique_together': "(('content_type', 'field_name', 'time'),)", 'object_name': 'ManyToManyHistoryCountsCache'},
+        u'm2m_history.manytomanyhistorycache': {
+            'Meta': {'unique_together': "(('content_type', 'field_name', 'time'),)", 'object_name': 'ManyToManyHistoryCache'},
             'added_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
             'field_name': ('django.db.models.fields.CharField', [], {'max_length': '50', 'db_index': 'True'}),
