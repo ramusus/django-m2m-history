@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'ManyToManyHistoryVersion'
         db.create_table(u'm2m_history_manytomanyhistoryversion', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
+            ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(related_name='m2m_history_versions', to=orm['contenttypes.ContentType'])),
+            ('object_id', self.gf('django.db.models.fields.BigIntegerField')(db_index=True)),
             ('field_name', self.gf('django.db.models.fields.CharField')(max_length=50, db_index=True)),
             ('time', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
             ('count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
@@ -20,13 +21,13 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'm2m_history', ['ManyToManyHistoryVersion'])
 
-        # Adding unique constraint on 'ManyToManyHistoryVersion', fields ['content_type', 'field_name', 'time']
-        db.create_unique(u'm2m_history_manytomanyhistoryversion', ['content_type_id', 'field_name', 'time'])
+        # Adding unique constraint on 'ManyToManyHistoryVersion', fields ['content_type', 'object_id', 'field_name', 'time']
+        db.create_unique(u'm2m_history_manytomanyhistoryversion', ['content_type_id', 'object_id', 'field_name', 'time'])
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ManyToManyHistoryVersion', fields ['content_type', 'field_name', 'time']
-        db.delete_unique(u'm2m_history_manytomanyhistoryversion', ['content_type_id', 'field_name', 'time'])
+        # Removing unique constraint on 'ManyToManyHistoryVersion', fields ['content_type', 'object_id', 'field_name', 'time']
+        db.delete_unique(u'm2m_history_manytomanyhistoryversion', ['content_type_id', 'object_id', 'field_name', 'time'])
 
         # Deleting model 'ManyToManyHistoryVersion'
         db.delete_table(u'm2m_history_manytomanyhistoryversion')
@@ -40,13 +41,14 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        u'm2m_history.manytomanyhistorycache': {
-            'Meta': {'unique_together': "(('content_type', 'field_name', 'time'),)", 'object_name': 'ManyToManyHistoryVersion'},
+        u'm2m_history.manytomanyhistoryversion': {
+            'Meta': {'unique_together': "(('content_type', 'object_id', 'field_name', 'time'),)", 'object_name': 'ManyToManyHistoryVersion'},
             'added_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'m2m_history_versions'", 'to': u"orm['contenttypes.ContentType']"}),
             'count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'field_name': ('django.db.models.fields.CharField', [], {'max_length': '50', 'db_index': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.BigIntegerField', [], {'db_index': 'True'}),
             'removed_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'time': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'})
         }

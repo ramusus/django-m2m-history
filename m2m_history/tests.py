@@ -111,14 +111,17 @@ class ManyToManyHistoryTest(TestCase):
         with self.assertRaises(ValueError):
             article.publications.were_at(state_time5, unique=False)
 
-        # test caches
+        # test versions
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
-            cache = article.publications.get_cache(time=state_time)
-            self.assertEqual(cache.count,           article.publications.were_at(state_time).count())
-            self.assertEqual(cache.added_count,     article.publications.added_at(state_time).count())
-            self.assertEqual(cache.removed_count,   article.publications.removed_at(state_time).count())
+            version = article.publications.get_version(time=state_time)
+            self.assertItemsEqual(version.items,    article.publications.were_at(state_time))
+            self.assertItemsEqual(version.added,    article.publications.added_at(state_time))
+            self.assertItemsEqual(version.removed,  article.publications.removed_at(state_time))
+            self.assertEqual(version.count,         article.publications.were_at(state_time).count())
+            self.assertEqual(version.added_count,   article.publications.added_at(state_time).count())
+            self.assertEqual(version.removed_count, article.publications.removed_at(state_time).count())
 
         article.publications_no_cache = [p1, p2]
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
