@@ -14,6 +14,7 @@ class Migration(SchemaMigration):
             ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
             ('field_name', self.gf('django.db.models.fields.CharField')(max_length=50, db_index=True)),
             ('time', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
+            ('count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('added_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('removed_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
         ))
@@ -43,6 +44,7 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('content_type', 'field_name', 'time'),)", 'object_name': 'ManyToManyHistoryCache'},
             'added_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            'count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'field_name': ('django.db.models.fields.CharField', [], {'max_length': '50', 'db_index': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'removed_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
