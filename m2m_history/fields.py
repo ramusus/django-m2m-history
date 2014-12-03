@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from django.db import models
 from descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedObjectsHistoryDescriptor
+from django.db import models
 
 __all__ = ['ManyToManyHistoryField']
 
@@ -17,9 +17,13 @@ class ManyToManyHistoryField(models.ManyToManyField):
         '''
         super(ManyToManyHistoryField, self).contribute_to_class(cls, name)
 
-        self.rel.through._meta.unique_together = ()
-        self.rel.through.add_to_class('time_from', models.DateTimeField(u'Datetime from', null=True, db_index=True))
-        self.rel.through.add_to_class('time_to',  models.DateTimeField(u'Datetime to', null=True, db_index=True))
+        try:
+            self.rel.through._meta.unique_together = ()
+            self.rel.through.add_to_class(
+                'time_from', models.DateTimeField(u'Datetime from', null=True, db_index=True))
+            self.rel.through.add_to_class('time_to',  models.DateTimeField(u'Datetime to', null=True, db_index=True))
+        except AttributeError:
+            pass
         # wrong behaviour of south
 #        self.rel.through._meta.auto_created = False
 

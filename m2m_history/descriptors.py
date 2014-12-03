@@ -17,6 +17,10 @@ def create_many_related_history_manager(superclass, rel):
         time = None
 
         @property
+        def db(self):
+            return router.db_for_write(self.through, instance=self.instance)
+
+        @property
         def versions(self):
             return ManyToManyHistoryVersion.objects.filter(content_type=ContentType.objects.get_for_model(self.instance), object_id=self.instance.pk, field_name=self.prefetch_cache_name)
 
@@ -35,28 +39,27 @@ def create_many_related_history_manager(superclass, rel):
             except IndexError:
                 return qs.exclude(time_from=None).order_by('-time_from')[0].time_from
 
-        def get_user_ids_of_period(self, group, date_from, date_to, field=None, unique=True):
-
-            if field is None:
-                # TODO: make normal filtering
-                kwargs = {'time_entered': None, 'time_left': None} \
-                    | {'time_entered__lte': date_from, 'time_left': None} \
-                    | {'time_entered': None, 'time_left__gte': date_to}
-            elif field in ['left','entered']:
-                kwargs = {'time_%s__gt' % field: date_from, 'time_%s__lte' % field: date_to}
-            else:
-                raise ValueError("Attribute `field` should be equal to 'left' of 'entered'")
-
-            qs = self.filter(group=group, **kwargs)
-            return self._prepare_qs(qs, unique)
+#         def get_user_ids_of_period(self, group, date_from, date_to, field=None, unique=True):
+#
+#             if field is None:
+#                 # TODO: make normal filtering
+#                 kwargs = {'time_entered': None, 'time_left': None} \
+#                     | {'time_entered__lte': date_from, 'time_left': None} \
+#                     | {'time_entered': None, 'time_left__gte': date_to}
+#             elif field in ['left','entered']:
+#                 kwargs = {'time_%s__gt' % field: date_from, 'time_%s__lte' % field: date_to}
+#             else:
+#                 raise ValueError("Attribute `field` should be equal to 'left' of 'entered'")
+#
+#             qs = self.filter(group=group, **kwargs)
+#             return self._prepare_qs(qs, unique)
 
         def _prepare_queryset(self, queryset, only_pk=False, unique=True):
             queryset = queryset.values_list(self.target_field_name, flat=True)
             if not only_pk:
                 if unique == False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                db = router.db_for_write(self.through, instance=self.instance)
-                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(db).filter(pk__in=queryset)
+                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(self.db).filter(pk__in=queryset)
 
             if unique:
                 queryset = queryset.distinct()
@@ -67,8 +70,7 @@ def create_many_related_history_manager(superclass, rel):
             return self._prepare_queryset(queryset, **kwargs)
 
         def get_query_set_through(self):
-            db = router.db_for_write(self.through, instance=self.instance)
-            qs = self.through._default_manager.using(db).filter(**{
+            qs = self.through._default_manager.using(self.db).filter(**{
                 self.source_field_name: self._fk_val,
             })
             return qs
@@ -102,15 +104,13 @@ def create_many_related_history_manager(superclass, rel):
             if self.reverse or source_field_name == self.source_field_name:
                 # Don't send the signal when we are inserting the
                 # duplicate data row for symmetrical reverse entries.
-                db = router.db_for_write(self.through, instance=self.instance)
-
                 signals.m2m_changed.send(sender=self.through, action=action,
                     instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=ids, using=db)
+                    model=self.model, pk_set=ids, using=self.db)
 
                 m2m_history_changed.send(sender=self.through, action=action,
                     instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=ids, using=db,
+                    model=self.model, pk_set=ids, using=self.db,
                     field_name=self.prefetch_cache_name, time=self.get_time())
 
         def _add_items(self, source_field_name, target_field_name, *objs):
@@ -136,8 +136,7 @@ def create_many_related_history_manager(superclass, rel):
                         raise TypeError("'%s' instance expected, got %r" % (self.model._meta.object_name, obj))
                     else:
                         new_ids.add(obj)
-                db = router.db_for_write(self.through, instance=self.instance)
-                vals = self.through._default_manager.using(db).values_list(target_field_name, flat=True)
+                vals = self.through._default_manager.using(self.db).values_list(target_field_name, flat=True)
                 vals = vals.filter(**{
                     source_field_name: self._fk_val,
                     '%s__in' % target_field_name: new_ids,
@@ -148,7 +147,7 @@ def create_many_related_history_manager(superclass, rel):
                 self.send_signal(source_field_name, 'pre_add', new_ids)
 
                 # Add the ones that aren't there already
-                self.through._default_manager.using(db).bulk_create([
+                self.through._default_manager.using(self.db).bulk_create([
                     self.through(**{
                         '%s_id' % source_field_name: self._fk_val,
                         '%s_id' % target_field_name: obj_id,
@@ -173,13 +172,11 @@ def create_many_related_history_manager(superclass, rel):
                         old_ids.add(self._get_fk_val(obj, target_field_name))
                     else:
                         old_ids.add(obj)
-                # Work out what DB we're operating on
-                db = router.db_for_write(self.through, instance=self.instance)
 
                 self.send_signal(source_field_name, 'pre_remove', old_ids)
 
                 # Remove the specified objects from the join table
-                qs = self.through._default_manager.using(db).filter(**{
+                qs = self.through._default_manager.using(self.db).filter(**{
                     source_field_name: self._fk_val,
                     '%s__in' % target_field_name: old_ids,
                     'time_to': None,
@@ -189,12 +186,11 @@ def create_many_related_history_manager(superclass, rel):
                 self.send_signal(source_field_name, 'post_remove', old_ids)
 
         def _clear_items(self, source_field_name, target_field_name, *objs):
-            db = router.db_for_write(self.through, instance=self.instance)
             # source_field_name: the PK colname in join table for the source object
 
             self.send_signal(source_field_name, 'pre_clear', None)
 
-            qs = self.through._default_manager.using(db).filter(**{
+            qs = self.through._default_manager.using(self.db).filter(**{
                 source_field_name: self._fk_val,
                 'time_to': None,
             }).exclude(**{
