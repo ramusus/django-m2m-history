@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
-from django.contrib.contenttypes.models import ContentType
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
-from signals import m2m_history_changed
-from models import ManyToManyHistoryVersion
-from datetime import datetime
+from django.utils import timezone
+
+from .models import ManyToManyHistoryVersion
+from .signals import m2m_history_changed
 
 
 def create_many_related_history_manager(superclass, rel):
@@ -26,7 +27,7 @@ def create_many_related_history_manager(superclass, rel):
 
         def get_time(self):
             if not self.time:
-                self.time = datetime.now()
+                self.time = timezone.now()
             return self.time
 
         def last_update_time(self):
@@ -42,7 +43,7 @@ def create_many_related_history_manager(superclass, rel):
 #         def get_user_ids_of_period(self, group, date_from, date_to, field=None, unique=True):
 #
 #             if field is None:
-#                 # TODO: make normal filtering
+# TODO: make normal filtering
 #                 kwargs = {'time_entered': None, 'time_left': None} \
 #                     | {'time_entered__lte': date_from, 'time_left': None} \
 #                     | {'time_entered': None, 'time_left__gte': date_to}
@@ -59,7 +60,8 @@ def create_many_related_history_manager(superclass, rel):
             if not only_pk:
                 if unique == False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(self.db).filter(pk__in=queryset)
+                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
+                    self.db).filter(pk__in=queryset)
 
             if unique:
                 queryset = queryset.distinct()
@@ -78,9 +80,9 @@ def create_many_related_history_manager(superclass, rel):
         def were_at(self, time, **kwargs):
             queryset = self.get_query_set_through()
             queryset = queryset.filter(
-                Q(time_from=None,        time_to=None) | \
-                Q(time_from=None,        time_to__gt=time) | \
-                Q(time_from__lte=time,   time_to=None) | \
+                Q(time_from=None,        time_to=None) |
+                Q(time_from=None,        time_to__gt=time) |
+                Q(time_from__lte=time,   time_to=None) |
                 Q(time_from__lte=time,   time_to__gt=time))
             return self._prepare_queryset(queryset, **kwargs)
 
@@ -105,13 +107,13 @@ def create_many_related_history_manager(superclass, rel):
                 # Don't send the signal when we are inserting the
                 # duplicate data row for symmetrical reverse entries.
                 signals.m2m_changed.send(sender=self.through, action=action,
-                    instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=ids, using=self.db)
+                                         instance=self.instance, reverse=self.reverse,
+                                         model=self.model, pk_set=ids, using=self.db)
 
                 m2m_history_changed.send(sender=self.through, action=action,
-                    instance=self.instance, reverse=self.reverse,
-                    model=self.model, pk_set=ids, using=self.db,
-                    field_name=self.prefetch_cache_name, time=self.get_time())
+                                         instance=self.instance, reverse=self.reverse,
+                                         model=self.model, pk_set=ids, using=self.db,
+                                         field_name=self.prefetch_cache_name, time=self.get_time())
 
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
@@ -126,7 +128,7 @@ def create_many_related_history_manager(superclass, rel):
                     if isinstance(obj, self.model):
                         if not router.allow_relation(obj, self.instance):
                             raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
-                                               (obj, self.instance._state.db, obj._state.db))
+                                             (obj, self.instance._state.db, obj._state.db))
                         fk_val = self._get_fk_val(obj, target_field_name)
                         if fk_val is None:
                             raise ValueError('Cannot add "%r": the value for field "%s" is None' %
@@ -204,6 +206,7 @@ def create_many_related_history_manager(superclass, rel):
 
 
 class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescriptor):
+
     @cached_property
     def related_manager_cls(self):
         '''
@@ -223,7 +226,8 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 
         if not self.field.rel.through._meta.auto_created:
             opts = self.field.rel.through._meta
-            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model.  Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
+            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model.  Use %s.%s's Manager instead." % (
+                opts.app_label, opts.object_name))
 
         manager = self.__get__(instance)
         manager.clear(*value)
@@ -231,6 +235,7 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 
 
 class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
+
     @cached_property
     def related_manager_cls(self):
         '''
@@ -250,7 +255,8 @@ class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
 
         if not self.related.field.rel.through._meta.auto_created:
             opts = self.related.field.rel.through._meta
-            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
+            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. Use %s.%s's Manager instead." % (
+                opts.app_label, opts.object_name))
 
         manager = self.__get__(instance)
         manager.clear(*value)
