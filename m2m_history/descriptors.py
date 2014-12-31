@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import django
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
@@ -115,13 +116,6 @@ def create_many_related_history_manager(superclass, rel):
                                          model=self.model, pk_set=ids, using=self.db,
                                          field_name=self.prefetch_cache_name, time=self.get_time())
 
-        @property
-        def _fk_val(self):
-            return self.related_val[0]
-
-        def _get_fk_val(self, obj, target_field_name):
-            return self.through._meta.get_field(target_field_name).get_foreign_related_value(obj)[0]
-
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
             # target_field_name: the PK fieldname in join table for the target object
@@ -208,6 +202,16 @@ def create_many_related_history_manager(superclass, rel):
             qs.update(time_to=self.get_time())
 
             self.send_signal(source_field_name, 'post_clear', set(self.removed_at(self.get_time(), only_pk=True)))
+
+        # compatibility with Django 1.7
+        if django.VERSION[:2] == (1, 7):
+
+            @property
+            def _fk_val(self):
+                return self.related_val[0]
+
+            def _get_fk_val(self, obj, target_field_name):
+                return self.through._meta.get_field(target_field_name).get_foreign_related_value(obj)[0]
 
     return ManyToManyHistoryThroughManager
 
