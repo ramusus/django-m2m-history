@@ -7,6 +7,13 @@ Django ManyToMany relation field with history of changes. Like usual Django's Ma
 to represent the many-to-many relationship, but with two additional columns: 'time_from' and 'time_to'. Using updated interface of field it's
 possible to retreive history of all versions of this field's value.
 
+Compatibility
+-------------
+
+  * python v2.7, v3.4
+  * django >=1.4, <=1.7
+  * postgres, mysql
+
 Installation
 ------------
 
@@ -18,13 +25,6 @@ Add into `settings.py` lines:
         ...
         'm2m_history',
     )
-
-Compatibility
--------------
-
-  * python ==2.7, ==3.4
-  * django >=1.4, <=1,7
-  * postgres, mysql
 
 Usage example
 -------------
