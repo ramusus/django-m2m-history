@@ -89,7 +89,7 @@ class QuickDjangoTest(object):
 
     def get_custom_settings(self):
         try:
-            from .settings_test import *
+            from settings_test import *
             settings_test = dict(locals())
             del settings_test['self']
             if 'INSTALLED_APPS' in settings_test:
