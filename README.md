@@ -1,4 +1,5 @@
-# Django ManyToMany History
+Django ManyToMany History
+========================
 
 [![PyPI version](https://badge.fury.io/py/django-m2m-history.png)](http://badge.fury.io/py/django-m2m-history) [![Build Status](https://travis-ci.org/ramusus/django-m2m-history.png?branch=master)](https://travis-ci.org/ramusus/django-m2m-history) [![Coverage Status](https://coveralls.io/repos/ramusus/django-m2m-history/badge.png?branch=master)](https://coveralls.io/r/ramusus/django-m2m-history)
 
@@ -6,7 +7,8 @@ Django ManyToMany relation field with history of changes. Like usual Django's Ma
 to represent the many-to-many relationship, but with two additional columns: 'time_from' and 'time_to'. Using updated interface of field it's
 possible to retreive history of all versions of this field's value.
 
-## Installation
+Installation
+------------
 
     pip install django-m2m-history
 
@@ -17,7 +19,15 @@ Add into `settings.py` lines:
         'm2m_history',
     )
 
-## Usage example
+Compatibility
+-------------
+
+  * python ==2.7, ==3.4
+  * django >=1.4, <=1,7
+  * postgres, mysql
+
+Usage example
+-------------
 
 Make 2 models with many-to-many relationship:
 
