@@ -115,6 +115,13 @@ def create_many_related_history_manager(superclass, rel):
                                          model=self.model, pk_set=ids, using=self.db,
                                          field_name=self.prefetch_cache_name, time=self.get_time())
 
+        @property
+        def _fk_val(self):
+            return self.related_val[0]
+
+        def _get_fk_val(self, obj, target_field_name):
+            return self.through._meta.get_field(target_field_name).get_foreign_related_value(obj)[0]
+
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
             # target_field_name: the PK fieldname in join table for the target object
@@ -133,7 +140,7 @@ def create_many_related_history_manager(superclass, rel):
                         if fk_val is None:
                             raise ValueError('Cannot add "%r": the value for field "%s" is None' %
                                              (obj, target_field_name))
-                        new_ids.add(self._get_fk_val(obj, target_field_name))
+                        new_ids.add(fk_val)
                     elif isinstance(obj, Model):
                         raise TypeError("'%s' instance expected, got %r" % (self.model._meta.object_name, obj))
                     else:
