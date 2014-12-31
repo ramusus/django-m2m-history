@@ -3,7 +3,7 @@ QuickDjangoTest module for testing in Travis CI https://travis-ci.org
 Changes log:
  * 2014-10-24 updated for compatibility with Django 1.7
  * 2014-11-03 different databases support: sqlite3, mysql, postgres
- * 2014-12-31 pep8
+ * 2014-12-31 pep8, python 3 compatibility
 '''
 
 import argparse
@@ -89,11 +89,9 @@ class QuickDjangoTest(object):
 
     def get_custom_settings(self):
         try:
-            from settings_test import *
-            settings_test = dict(locals())
-            del settings_test['self']
-            if 'INSTALLED_APPS' in settings_test:
-                del settings_test['INSTALLED_APPS']
+            import settings_test
+            settings_test = dict([(k, v) for k, v in settings_test.__dict__.items() if k[0] != '_'])
+            INSTALLED_APPS = settings_test.pop('INSTALLED_APPS', [])
         except ImportError:
             settings_test = {}
             INSTALLED_APPS = []

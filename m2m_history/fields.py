@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-from descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedObjectsHistoryDescriptor
 from django.db import models
+
+from .descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedObjectsHistoryDescriptor
 
 __all__ = ['ManyToManyHistoryField']
 

@@ -1,14 +1,16 @@
-# -*- coding: utf-8 -*-
-from django.test import TestCase
-from django.db import models
-from fields import ManyToManyHistoryField
+'''
+Improved tests based on Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
+'''
+
 from datetime import datetime
-from models import ManyToManyHistoryVersion
 import time
 
-'''
-Example model from Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
-'''
+from django.db import models
+from django.test import TestCase
+
+from .fields import ManyToManyHistoryField
+from .models import ManyToManyHistoryVersion
+
 
 class Publication(models.Model):
     title = models.CharField(max_length=30)
@@ -20,14 +22,14 @@ class Article(models.Model):
     publications_no_cache = ManyToManyHistoryField(Publication, related_name='articles_no_cache')
 
 
-'''
-Test class
-'''
-
 class ManyToManyHistoryTest(TestCase):
 
+    def assertItemsEqual(self, a, b):
+        return self.assertListEqual(list(a.order_by('id').values_list('id', flat=True)), sorted([p.id for p in b]))
+
     def test_m2m_fields_and_methods(self):
-        self.assertItemsEqual([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields], [u'id', 'time_from', 'time_to', 'article', 'publication'])
+        self.assertListEqual(sorted([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields]),
+                             sorted([u'id', 'time_from', 'time_to', 'article', 'publication']))
 
     def test_m2m_history_features(self):
 
@@ -107,7 +109,8 @@ class ManyToManyHistoryTest(TestCase):
         self.assertItemsEqual(article.publications.removed_at(state_time7), [p1, p2])
 
         # test different arguments
-        self.assertItemsEqual(article.publications.were_at(state_time4, only_pk=True), map(lambda o: o.pk, article.publications.were_at(state_time4)))
+        self.assertListEqual(sorted(list(article.publications.were_at(state_time4, only_pk=True))),
+                             sorted(list(map(lambda o: o.pk, article.publications.were_at(state_time4)))))
         with self.assertRaises(ValueError):
             article.publications.were_at(state_time5, unique=False)
 
@@ -167,8 +170,8 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(Article.objects.filter(publications__title__startswith="Science").count(), 2)
         self.assertEqual(Article.objects.filter(publications__title__startswith="Science").distinct().count(), 1)
 
-        self.assertItemsEqual(Article.objects.filter(publications__in=[1,2]).distinct(), [a1, a2])
-        self.assertItemsEqual(Article.objects.filter(publications__in=[p1,p2]).distinct(), [a1, a2])
+        self.assertItemsEqual(Article.objects.filter(publications__in=[1, 2]).distinct(), [a1, a2])
+        self.assertItemsEqual(Article.objects.filter(publications__in=[p1, p2]).distinct(), [a1, a2])
 
         self.assertItemsEqual(Publication.objects.filter(id=1), [p1])
         self.assertItemsEqual(Publication.objects.filter(pk=1), [p1])
@@ -179,8 +182,8 @@ class ManyToManyHistoryTest(TestCase):
         self.assertItemsEqual(Publication.objects.filter(article=1), [p1])
         self.assertItemsEqual(Publication.objects.filter(article=a1), [p1])
 
-        self.assertItemsEqual(Publication.objects.filter(article__in=[1,2]).distinct(), [p1, p2, p3, p4])
-        self.assertItemsEqual(Publication.objects.filter(article__in=[a1,a2]).distinct(), [p1, p2, p3, p4])
+        self.assertItemsEqual(Publication.objects.filter(article__in=[1, 2]).distinct(), [p1, p2, p3, p4])
+        self.assertItemsEqual(Publication.objects.filter(article__in=[a1, a2]).distinct(), [p1, p2, p3, p4])
         self.assertItemsEqual(Article.objects.exclude(publications=p2), [a1])
 
         p1.delete()
