@@ -32,7 +32,7 @@ def create_many_related_history_manager(superclass, rel):
             return self.time
 
         def last_update_time(self):
-            # TODO: optimize this method to one query
+            # TODO: refactor and optimize this method to one query
             qs = self.get_query_set_through()
             try:
                 time_to = qs.exclude(time_to=None).order_by('-time_to')[0].time_to
@@ -155,8 +155,7 @@ def create_many_related_history_manager(superclass, rel):
                         '%s_id' % source_field_name: self._fk_val,
                         '%s_id' % target_field_name: obj_id,
                         'time_from': self.get_time(),
-                    })
-                    for obj_id in new_ids
+                    }) for obj_id in new_ids
                 ])
 
                 self.send_signal(source_field_name, 'post_add', new_ids)
