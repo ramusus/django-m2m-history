@@ -116,18 +116,21 @@ class ManyToManyHistoryTest(TestCase):
 
         # test versions
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
+        self.assertEqual(article.publications.versions.count(), 6)
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
             version = article.publications.versions.get(time=state_time)
-            self.assertPublicationsEqual(version.items,    article.publications.were_at(state_time))
-            self.assertPublicationsEqual(version.added,    article.publications.added_at(state_time))
-            self.assertPublicationsEqual(version.removed,  article.publications.removed_at(state_time))
-            self.assertEqual(version.count,         article.publications.were_at(state_time).count())
-            self.assertEqual(version.added_count,   article.publications.added_at(state_time).count())
-            self.assertEqual(version.removed_count, article.publications.removed_at(state_time).count())
+            self.assertPublicationsEqual(version.items,     article.publications.were_at(state_time))
+            self.assertPublicationsEqual(version.added,     article.publications.added_at(state_time))
+            self.assertPublicationsEqual(version.removed,   article.publications.removed_at(state_time))
+            self.assertEqual(version.count,                 article.publications.were_at(state_time).count())
+            self.assertEqual(version.added_count,           article.publications.added_at(state_time).count())
+            self.assertEqual(version.removed_count,         article.publications.removed_at(state_time).count())
 
+        # test absence of versions
         article.publications_no_versions = [p1, p2]
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
+        self.assertEqual(article.publications_no_versions.versions.count(), 0)
 
     def test_m2m_default_features(self):
         '''
