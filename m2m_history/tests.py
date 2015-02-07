@@ -2,8 +2,8 @@
 Improved tests based on Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
 '''
 
-from datetime import datetime
 import time
+from datetime import datetime
 
 from django.db import models
 from django.test import TestCase
@@ -18,8 +18,8 @@ class Publication(models.Model):
 
 class Article(models.Model):
     headline = models.CharField(max_length=100)
-    publications = ManyToManyHistoryField(Publication, cache=True)
-    publications_no_cache = ManyToManyHistoryField(Publication, related_name='articles_no_cache')
+    publications = ManyToManyHistoryField(Publication, versions=True)
+    publications_no_versions = ManyToManyHistoryField(Publication, related_name='articles_no_versions')
 
 
 class ManyToManyHistoryTest(TestCase):
@@ -126,7 +126,7 @@ class ManyToManyHistoryTest(TestCase):
             self.assertEqual(version.added_count,   article.publications.added_at(state_time).count())
             self.assertEqual(version.removed_count, article.publications.removed_at(state_time).count())
 
-        article.publications_no_cache = [p1, p2]
+        article.publications_no_versions = [p1, p2]
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
 
     def test_m2m_default_features(self):
@@ -255,7 +255,7 @@ class ManyToManyHistoryTest(TestCase):
         self.assertPublicationsEqual(q, [a1])
         q.delete()
 
-        # After the delete(), the QuerySet cache needs to be cleared, and the referenced objects should be gone:
+        # After the delete(), the QuerySet versions needs to be cleared, and the referenced objects should be gone:
         self.assertPublicationsEqual(q, [])
         self.assertPublicationsEqual(p1.article_set.all(), [a2])
 

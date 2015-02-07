@@ -1,6 +1,7 @@
 from django.db import models
 
-from .descriptors import ManyRelatedObjectsHistoryDescriptor, ReverseManyRelatedObjectsHistoryDescriptor
+from .descriptors import (ManyRelatedObjectsHistoryDescriptor,
+                          ReverseManyRelatedObjectsHistoryDescriptor)
 
 __all__ = ['ManyToManyHistoryField']
 
@@ -8,7 +9,7 @@ __all__ = ['ManyToManyHistoryField']
 class ManyToManyHistoryField(models.ManyToManyField):
 
     def __init__(self, *args, **kwargs):
-        self.cache = kwargs.pop('cache', False)
+        self.versions = kwargs.pop('versions', False)
         super(ManyToManyHistoryField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
