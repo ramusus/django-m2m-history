@@ -3,7 +3,11 @@ import django
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
-from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, cached_property, create_many_related_manager, router, signals
+from django.db.models.fields.related import (ManyRelatedObjectsDescriptor,
+                                             ReverseManyRelatedObjectsDescriptor,
+                                             cached_property,
+                                             create_many_related_manager,
+                                             router, signals)
 from django.utils import timezone
 
 from .models import ManyToManyHistoryVersion
@@ -41,36 +45,21 @@ def create_many_related_history_manager(superclass, rel):
             except IndexError:
                 return qs.exclude(time_from=None).order_by('-time_from')[0].time_from
 
-#         def get_user_ids_of_period(self, group, date_from, date_to, field=None, unique=True):
-#
-#             if field is None:
-# TODO: make normal filtering
-#                 kwargs = {'time_entered': None, 'time_left': None} \
-#                     | {'time_entered__lte': date_from, 'time_left': None} \
-#                     | {'time_entered': None, 'time_left__gte': date_to}
-#             elif field in ['left','entered']:
-#                 kwargs = {'time_%s__gt' % field: date_from, 'time_%s__lte' % field: date_to}
-#             else:
-#                 raise ValueError("Attribute `field` should be equal to 'left' of 'entered'")
-#
-#             qs = self.filter(group=group, **kwargs)
-#             return self._prepare_qs(qs, unique)
-
-        def _prepare_queryset(self, queryset, only_pk=False, unique=True):
-            queryset = queryset.values_list(self.target_field_name, flat=True)
+        def _prepare_queryset(self, qs, only_pk=False, unique=True):
+            qs = qs.values_list(self.target_field_name, flat=True)
             if not only_pk:
-                if unique == False:
+                if unique is False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                queryset = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
-                    self.db).filter(pk__in=queryset)
+                qs = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
+                    self.db).filter(pk__in=qs)
 
             if unique:
-                queryset = queryset.distinct()
-            return queryset
+                qs = qs.distinct()
+            return qs
 
         def get_query_set(self, **kwargs):
-            queryset = self.get_query_set_through().filter(time_to=None)
-            return self._prepare_queryset(queryset, **kwargs)
+            qs = self.get_query_set_through().filter(time_to=None)
+            return self._prepare_queryset(qs, **kwargs)
 
         def get_query_set_through(self):
             qs = self.through._default_manager.using(self.db).filter(**{
@@ -78,22 +67,37 @@ def create_many_related_history_manager(superclass, rel):
             })
             return qs
 
+        def were_between(self, time_from, time_to, **kwargs):
+            qs = self.get_query_set_through().filter(
+                Q(time_from=None,           time_to=None) |
+                Q(time_from=None,           time_to__gt=time_to) |
+                Q(time_from__lte=time_from, time_to=None) |
+                Q(time_from__lte=time_from, time_to__gt=time_to))
+            return self._prepare_queryset(qs, **kwargs)
+
+        def added_between(self, time_from, time_to, **kwargs):
+            qs = self.get_query_set_through().filter(time_from__gte=time_from, time_from__lt=time_to)
+            return self._prepare_queryset(qs, **kwargs)
+
+        def removed_between(self, time_from, time_to, **kwargs):
+            qs = self.get_query_set_through().filter(time_to__gte=time_from, time_to__lt=time_to)
+            return self._prepare_queryset(qs, **kwargs)
+
         def were_at(self, time, **kwargs):
-            queryset = self.get_query_set_through()
-            queryset = queryset.filter(
+            qs = self.get_query_set_through().filter(
                 Q(time_from=None,        time_to=None) |
                 Q(time_from=None,        time_to__gt=time) |
                 Q(time_from__lte=time,   time_to=None) |
                 Q(time_from__lte=time,   time_to__gt=time))
-            return self._prepare_queryset(queryset, **kwargs)
+            return self._prepare_queryset(qs, **kwargs)
 
         def added_at(self, time, **kwargs):
-            queryset = self.get_query_set_through().filter(time_from=time)
-            return self._prepare_queryset(queryset, **kwargs)
+            qs = self.get_query_set_through().filter(time_from=time)
+            return self._prepare_queryset(qs, **kwargs)
 
         def removed_at(self, time, **kwargs):
-            queryset = self.get_query_set_through().filter(time_to=time)
-            return self._prepare_queryset(queryset, **kwargs)
+            qs = self.get_query_set_through().filter(time_to=time)
+            return self._prepare_queryset(qs, **kwargs)
 
         def clear(self, *objs):
             self._clear_items(self.source_field_name, self.target_field_name, *objs)
