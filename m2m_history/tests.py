@@ -111,17 +111,18 @@ class ManyToManyHistoryTest(TestCase):
         self.assertPublicationsEqual(article.publications.removed_at(state_time7), [p1, p2])
 
         # test were_between
-        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time2), [p1, p2])
-        self.assertPublicationsEqual(article.publications.added_between(state_time2, state_time3), [p1, p2, p3])
-        self.assertPublicationsEqual(article.publications.added_between(state_time4, state_time5), [p1, p2])
-        self.assertPublicationsEqual(article.publications.added_between(state_time4, state_time7), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_between(state_time1, state_time2), [])
+        self.assertPublicationsEqual(article.publications.were_between(state_time1, state_time3), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time3), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time3, state_time4), [p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time5, state_time6), [p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time5, state_time7), [p1, p2, p3])
 
         # test added_between
-        self.assertPublicationsEqual(article.publications.added_between(state_time2, state_time2), [p1, p2])
         self.assertPublicationsEqual(article.publications.added_between(state_time2, state_time3), [p1, p2, p3])
 
         # test removed_between
-        self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time3), [p1, p2])
         self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time5), [p1, p2])
         self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time6), [p1, p2, p3])
 
