@@ -128,29 +128,33 @@ def create_many_related_history_manager(superclass, rel):
                                          model=self.model, pk_set=ids, using=self.db,
                                          field_name=self.prefetch_cache_name, time=self.get_time())
 
+        def get_set_of_values(self, objs, target_field_name, check_values=False):
+            values = set()
+            # Check that all the objects are of the right type
+            for obj in objs:
+                if isinstance(obj, self.model):
+                    if check_values and not router.allow_relation(obj, self.instance):
+                        raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
+                                         (obj, self.instance._state.db, obj._state.db))
+                    fk_val = self._get_fk_val(obj, target_field_name)
+                    if check_values and fk_val is None:
+                        raise ValueError('Cannot add "%r": the value for field "%s" is None' %
+                                         (obj, target_field_name))
+                    values.add(fk_val)
+                elif isinstance(obj, models.Model):
+                    raise TypeError("'%s' instance expected, got %r" % (self.model._meta.object_name, obj))
+                else:
+                    values.add(obj)
+            return values
+
         def _add_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK fieldname in join table for the source object
             # target_field_name: the PK fieldname in join table for the target object
             # *objs - objects to add. Either object instances, or primary keys of object instances.
 
             # If there aren't any objects, there is nothing to do.
-            from django.db.models import Model
             if objs:
-                new_ids = set()
-                for obj in objs:
-                    if isinstance(obj, self.model):
-                        if not router.allow_relation(obj, self.instance):
-                            raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
-                                             (obj, self.instance._state.db, obj._state.db))
-                        fk_val = self._get_fk_val(obj, target_field_name)
-                        if fk_val is None:
-                            raise ValueError('Cannot add "%r": the value for field "%s" is None' %
-                                             (obj, target_field_name))
-                        new_ids.add(fk_val)
-                    elif isinstance(obj, Model):
-                        raise TypeError("'%s' instance expected, got %r" % (self.model._meta.object_name, obj))
-                    else:
-                        new_ids.add(obj)
+                new_ids = self.get_set_of_values(objs, target_field_name, check_values=True)
                 vals = self.through._default_manager.using(self.db).values_list(target_field_name, flat=True)
                 vals = vals.filter(**{
                     source_field_name: self._fk_val,
@@ -179,14 +183,7 @@ def create_many_related_history_manager(superclass, rel):
 
             # If there aren't any objects, there is nothing to do.
             if objs:
-                # Check that all the objects are of the right type
-                old_ids = set()
-                for obj in objs:
-                    if isinstance(obj, self.model):
-                        old_ids.add(self._get_fk_val(obj, target_field_name))
-                    else:
-                        old_ids.add(obj)
-
+                old_ids = self.get_set_of_values(objs, target_field_name)
                 self.send_signal(source_field_name, 'pre_remove', old_ids)
 
                 # Remove the specified objects from the join table
@@ -208,7 +205,7 @@ def create_many_related_history_manager(superclass, rel):
                 source_field_name: self._fk_val,
                 'time_to': None,
             }).exclude(**{
-                '%s__in' % target_field_name: [obj.pk for obj in objs]
+                '%s__in' % target_field_name: self.get_set_of_values(objs, target_field_name)
             })
             qs.update(time_to=self.get_time())
 
