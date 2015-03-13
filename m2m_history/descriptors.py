@@ -64,15 +64,19 @@ def create_many_related_history_manager(superclass, rel):
             # DEPRECATED. backward compatibility
             return self.get_queryset_through()
 
-        def get_queryset(self, **kwargs):
-            qs = self.get_queryset_through().filter(time_to=None)
-            return self._prepare_queryset(qs, **kwargs)
+        @property
+        def queryset_through(self):
+            return self.get_query_set_through()
 
         def get_queryset_through(self):
             qs = self.through._default_manager.using(self.db).filter(**{
                 self.source_field_name: self._fk_val,
             })
             return qs
+
+        def get_queryset(self, **kwargs):
+            qs = self.get_queryset_through().filter(time_to=None)
+            return self._prepare_queryset(qs, **kwargs)
 
         def were_between(self, time_from, time_to, **kwargs):
             if time_to <= time_from:

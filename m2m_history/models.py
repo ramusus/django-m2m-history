@@ -49,8 +49,7 @@ class ManyToManyHistoryVersion(models.Model):
         except IndexError:
             prev_time = None
 
-        m2m_field = getattr(self.object, self.field_name)
-        qs = m2m_field.through.objects.filter(**{m2m_field.source_field_name: self.object})
+        qs = getattr(self.object, self.field_name).queryset_through
 
         if prev_time:
             # delete all joined and left after time of the version
