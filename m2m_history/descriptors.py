@@ -235,18 +235,18 @@ def create_many_related_history_manager(superclass, rel):
 class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescriptor):
     @cached_property
     def related_manager_cls(self):
-        '''
+        """
         Difference from super method is return our own manager inherited from the build-in
-        '''
+        """
         return create_many_related_history_manager(
             self.field.rel.to._default_manager.__class__,
             self.field.rel
         )
 
     def __set__(self, instance, value):
-        '''
+        """
         Difference from super method is send value to `clear` method as well as to `add` method
-        '''
+        """
         if instance is None:
             raise AttributeError("Manager must be accessed via instance")
 
@@ -263,18 +263,18 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
     @cached_property
     def related_manager_cls(self):
-        '''
+        """
         Difference from super method is return our own manager inherited from the build-in
-        '''
+        """
         return create_many_related_history_manager(
             self.related.model._default_manager.__class__,
             self.related.field.rel
         )
 
     def __set__(self, instance, value):
-        '''
+        """
         Difference from super method is send value to `clear` method as well as to `add` method
-        '''
+        """
         if instance is None:
             raise AttributeError("Manager must be accessed via instance")
 
