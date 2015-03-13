@@ -1,6 +1,6 @@
-'''
+"""
 Improved tests based on Django docs: https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
-'''
+"""
 
 import time
 from datetime import datetime
@@ -9,7 +9,7 @@ from django.db import models
 from django.test import TestCase
 
 from .fields import ManyToManyHistoryField
-from .models import ManyToManyHistoryVersion
+from .models import ManyToManyHistoryVersion, HistoryVersionNotLast
 
 
 class Publication(models.Model):
@@ -150,10 +150,24 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
         self.assertEqual(article.publications_no_versions.versions.count(), 0)
 
+        # test of deleting not last version
+        version = article.publications.versions.get(time=state_time6)
+        with self.assertRaises(HistoryVersionNotLast):
+            version.delete()
+
+        # test of deleting last version
+        version = article.publications.versions.get(time=state_time7)
+        version.delete()
+        self.assertEqual(state_time6, article.publications.last_update_time())
+        self.assertPublicationsEqual(article.publications.all(), [p1, p2])
+        self.assertEqual(article.publications.count(), 2)
+        self.assertEqual(article.publications.through.objects.count(), 7)
+
+
     def test_m2m_default_features(self):
-        '''
+        """
         Build-in test from https://docs.djangoproject.com/en/dev/topics/db/examples/many_to_many/
-        '''
+        """
         p1 = Publication(title='The Python Journal')
         p1.save()
         p2 = Publication(title='Science News')

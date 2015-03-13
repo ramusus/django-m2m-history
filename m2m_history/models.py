@@ -6,6 +6,10 @@ from django.dispatch import receiver
 from .signals import m2m_history_changed
 
 
+class HistoryVersionNotLast(Exception):
+    pass
+
+
 class ManyToManyHistoryVersion(models.Model):
 
     class Meta:
@@ -34,6 +38,33 @@ class ManyToManyHistoryVersion(models.Model):
     def removed(self):
         return getattr(self.object, self.field_name).removed_at(self.time)
 
+    def delete(self, *args, **kwargs):
+        if getattr(self.object, self.field_name).versions.order_by('-time')[0].pk == self.pk:
+            self.delete_version_items()
+            super(ManyToManyHistoryVersion, self).delete(*args, **kwargs)
+        else:
+            raise HistoryVersionNotLast("It isn't supported to delete not last version of history m2m relation")
+
+    def delete_version_items(self):
+        # get previous version
+        try:
+            prev_time = getattr(self.object, self.field_name).versions.exclude(pk=self.pk).order_by('-time')[0].time
+        except IndexError:
+            prev_time = None
+
+        m2m_field = getattr(self.object, self.field_name)
+        qs = m2m_field.through.objects.filter(**{m2m_field.source_field_name: self.object})
+
+        if prev_time:
+            # delete all joined and left after time of the version
+            qs.filter(time_to__gt=prev_time, time_from__gt=prev_time).delete()
+            # delete all joined and not left after time of the version
+            qs.filter(time_from__gt=prev_time, time_to=None).delete()
+            # set time the version to all left afterc
+            qs.filter(time_to__gt=prev_time).update(time_to=None)
+        else:
+            # delete all if no previous version
+            qs.all().delete()
 
 @receiver(m2m_history_changed)
 def save_m2m_history_version(sender, action, instance, reverse, pk_set, field_name, time, **kwargs):

@@ -37,7 +37,7 @@ def create_many_related_history_manager(superclass, rel):
 
         def last_update_time(self):
             # TODO: refactor and optimize this method to one query
-            qs = self.get_query_set_through()
+            qs = self.get_queryset_through()
             try:
                 time_to = qs.exclude(time_to=None).order_by('-time_to')[0].time_to
                 time_from = qs.exclude(time_from=None).order_by('-time_from')[0].time_from
@@ -58,10 +58,18 @@ def create_many_related_history_manager(superclass, rel):
             return qs
 
         def get_query_set(self, **kwargs):
-            qs = self.get_query_set_through().filter(time_to=None)
-            return self._prepare_queryset(qs, **kwargs)
+            # DEPRECATED. backward compatibility
+            return self.get_queryset(**kwargs)
 
         def get_query_set_through(self):
+            # DEPRECATED. backward compatibility
+            return self.get_queryset_through()
+
+        def get_queryset(self, **kwargs):
+            qs = self.get_queryset_through().filter(time_to=None)
+            return self._prepare_queryset(qs, **kwargs)
+
+        def get_queryset_through(self):
             qs = self.through._default_manager.using(self.db).filter(**{
                 self.source_field_name: self._fk_val,
             })
@@ -70,7 +78,7 @@ def create_many_related_history_manager(superclass, rel):
         def were_between(self, time_from, time_to, **kwargs):
             if time_to <= time_from:
                 raise ValueError('Argument time_to should be later, than time_from')
-            qs = self.get_query_set_through().filter(
+            qs = self.get_queryset_through().filter(
                 Q(time_from=None,           time_to=None) |
                 Q(time_from=None,           time_to__gte=time_to) |
                 Q(time_from__lte=time_from, time_to=None) |
@@ -82,17 +90,17 @@ def create_many_related_history_manager(superclass, rel):
         def added_between(self, time_from, time_to, **kwargs):
             if time_to <= time_from:
                 raise ValueError('Argument time_to should be later, than time_from')
-            qs = self.get_query_set_through().filter(time_from__gte=time_from, time_from__lte=time_to)
+            qs = self.get_queryset_through().filter(time_from__gte=time_from, time_from__lte=time_to)
             return self._prepare_queryset(qs, **kwargs)
 
         def removed_between(self, time_from, time_to, **kwargs):
             if time_to <= time_from:
                 raise ValueError('Argument time_to should be later, than time_from')
-            qs = self.get_query_set_through().filter(time_to__gte=time_from, time_to__lte=time_to)
+            qs = self.get_queryset_through().filter(time_to__gte=time_from, time_to__lte=time_to)
             return self._prepare_queryset(qs, **kwargs)
 
         def were_at(self, time, **kwargs):
-            qs = self.get_query_set_through().filter(
+            qs = self.get_queryset_through().filter(
                 Q(time_from=None,        time_to=None) |
                 Q(time_from=None,        time_to__gt=time) |
                 Q(time_from__lte=time,   time_to=None) |
@@ -100,11 +108,11 @@ def create_many_related_history_manager(superclass, rel):
             return self._prepare_queryset(qs, **kwargs)
 
         def added_at(self, time, **kwargs):
-            qs = self.get_query_set_through().filter(time_from=time)
+            qs = self.get_queryset_through().filter(time_from=time)
             return self._prepare_queryset(qs, **kwargs)
 
         def removed_at(self, time, **kwargs):
-            qs = self.get_query_set_through().filter(time_to=time)
+            qs = self.get_queryset_through().filter(time_to=time)
             return self._prepare_queryset(qs, **kwargs)
 
         def clear(self, *objs):
