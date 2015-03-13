@@ -26,17 +26,14 @@ class ManyToManyHistoryVersion(models.Model):
     added_count = models.PositiveIntegerField(default=0)
     removed_count = models.PositiveIntegerField(default=0)
 
-    @property
-    def items(self):
-        return getattr(self.object, self.field_name).were_at(self.time)
+    def items(self, **kwargs):
+        return getattr(self.object, self.field_name).were_at(self.time, **kwargs)
 
-    @property
-    def added(self):
-        return getattr(self.object, self.field_name).added_at(self.time)
+    def added(self, **kwargs):
+        return getattr(self.object, self.field_name).added_at(self.time, **kwargs)
 
-    @property
-    def removed(self):
-        return getattr(self.object, self.field_name).removed_at(self.time)
+    def removed(self, **kwargs):
+        return getattr(self.object, self.field_name).removed_at(self.time, **kwargs)
 
     def delete(self, *args, **kwargs):
         if getattr(self.object, self.field_name).versions.order_by('-time')[0].pk == self.pk:

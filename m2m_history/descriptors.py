@@ -3,11 +3,8 @@ import django
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
-from django.db.models.fields.related import (ManyRelatedObjectsDescriptor,
-                                             ReverseManyRelatedObjectsDescriptor,
-                                             cached_property,
-                                             create_many_related_manager,
-                                             router, signals)
+from django.db.models.fields.related import ManyRelatedObjectsDescriptor, ReverseManyRelatedObjectsDescriptor, \
+    cached_property, create_many_related_manager, router, signals
 from django.utils import timezone
 
 from .models import ManyToManyHistoryVersion
@@ -28,7 +25,9 @@ def create_many_related_history_manager(superclass, rel):
 
         @property
         def versions(self):
-            return ManyToManyHistoryVersion.objects.filter(content_type=ContentType.objects.get_for_model(self.instance), object_id=self.instance.pk, field_name=self.prefetch_cache_name)
+            return ManyToManyHistoryVersion.objects.filter(
+                content_type=ContentType.objects.get_for_model(self.instance),
+                object_id=self.instance.pk, field_name=self.prefetch_cache_name)
 
         def get_time(self):
             if not self.time:
@@ -79,12 +78,12 @@ def create_many_related_history_manager(superclass, rel):
             if time_to <= time_from:
                 raise ValueError('Argument time_to should be later, than time_from')
             qs = self.get_queryset_through().filter(
-                Q(time_from=None,           time_to=None) |
-                Q(time_from=None,           time_to__gte=time_to) |
+                Q(time_from=None, time_to=None) |
+                Q(time_from=None, time_to__gte=time_to) |
                 Q(time_from__lte=time_from, time_to=None) |
                 Q(time_from__gte=time_from, time_to__lte=time_to) |
                 Q(time_from__lte=time_from, time_to__gte=time_to) |
-                Q(time_from__lt=time_to,    time_to__gt=time_from))
+                Q(time_from__lt=time_to, time_to__gt=time_from))
             return self._prepare_queryset(qs, **kwargs)
 
         def added_between(self, time_from, time_to, **kwargs):
@@ -101,10 +100,10 @@ def create_many_related_history_manager(superclass, rel):
 
         def were_at(self, time, **kwargs):
             qs = self.get_queryset_through().filter(
-                Q(time_from=None,        time_to=None) |
-                Q(time_from=None,        time_to__gt=time) |
-                Q(time_from__lte=time,   time_to=None) |
-                Q(time_from__lte=time,   time_to__gt=time))
+                Q(time_from=None, time_to=None) |
+                Q(time_from=None, time_to__gt=time) |
+                Q(time_from__lte=time, time_to=None) |
+                Q(time_from__lte=time, time_to__gt=time))
             return self._prepare_queryset(qs, **kwargs)
 
         def added_at(self, time, **kwargs):
@@ -121,6 +120,7 @@ def create_many_related_history_manager(superclass, rel):
             # If this is a symmetrical m2m relation to self, clear the mirror entry in the m2m table
             if self.symmetrical:
                 self._clear_items(self.target_field_name, self.source_field_name, *objs)
+
         clear.alters_data = True
 
         def send_signal(self, source_field_name, action, ids):
@@ -233,7 +233,6 @@ def create_many_related_history_manager(superclass, rel):
 
 
 class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescriptor):
-
     @cached_property
     def related_manager_cls(self):
         '''
@@ -253,8 +252,8 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 
         if not self.field.rel.through._meta.auto_created:
             opts = self.field.rel.through._meta
-            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model.  Use %s.%s's Manager instead." % (
-                opts.app_label, opts.object_name))
+            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. "
+                                 "Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
 
         manager = self.__get__(instance)
         manager.clear(*value)
@@ -262,7 +261,6 @@ class ReverseManyRelatedObjectsHistoryDescriptor(ReverseManyRelatedObjectsDescri
 
 
 class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
-
     @cached_property
     def related_manager_cls(self):
         '''
@@ -282,8 +280,8 @@ class ManyRelatedObjectsHistoryDescriptor(ManyRelatedObjectsDescriptor):
 
         if not self.related.field.rel.through._meta.auto_created:
             opts = self.related.field.rel.through._meta
-            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. Use %s.%s's Manager instead." % (
-                opts.app_label, opts.object_name))
+            raise AttributeError("Cannot set values on a ManyToManyField which specifies an intermediary model. "
+                                 "Use %s.%s's Manager instead." % (opts.app_label, opts.object_name))
 
         manager = self.__get__(instance)
         manager.clear(*value)
