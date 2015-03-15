@@ -62,15 +62,21 @@ class ManyToManyHistoryVersion(models.Model):
             # delete all if no previous version
             qs.all().delete()
 
+
 @receiver(m2m_history_changed)
 def save_m2m_history_version(sender, action, instance, reverse, pk_set, field_name, time, **kwargs):
     keep_version = not reverse and instance._meta.get_field(field_name).versions
     if keep_version and action in ['post_add', 'post_remove', 'post_clear'] and len(pk_set):
-        version = ManyToManyHistoryVersion.objects.get_or_create(
-            content_type=ContentType.objects.get_for_model(instance), object_id=instance.pk, field_name=field_name, time=time)[0]
-        version.count = getattr(instance, field_name).get_query_set(only_pk=True).count()
+        defaults = {
+            'count': getattr(instance, field_name).get_queryset(only_pk=True).count(),
+        }
         if action in ['post_add']:
-            version.added_count = len(pk_set)
+            defaults['added_count'] = len(pk_set)
         elif action in ['post_remove', 'post_clear']:
-            version.removed_count = len(pk_set)
-        version.save()
+            defaults['removed_count'] = len(pk_set)
+        version, created = ManyToManyHistoryVersion.objects.get_or_create(
+            content_type=ContentType.objects.get_for_model(instance), object_id=instance.pk, field_name=field_name,
+            time=time, defaults=defaults)
+        if not created:
+            version.__dict__.update(defaults)
+            version.save()
