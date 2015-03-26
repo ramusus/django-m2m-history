@@ -136,6 +136,11 @@ class ManyToManyHistoryVersion(models.Model):
             # all, who entered here and exist in the next -> entered in the next
             qs.filter(time_from=self.time).filter(**users_next).update(time_from=next.time)
 
+            # update counts of the next version
+            next.added_count = next.added(only_pk=True).count()
+            next.removed_count = next.removed(only_pk=True).count()
+            next.save()
+
 
 @receiver(m2m_history_changed)
 def save_m2m_history_version(sender, action, instance, reverse, pk_set, field_name, time, **kwargs):

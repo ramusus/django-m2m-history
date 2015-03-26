@@ -7,7 +7,6 @@ import time
 from django.db import models
 from django.test import TestCase
 from django.utils import timezone
-
 from .fields import ManyToManyHistoryField
 from .models import ManyToManyHistoryVersion
 
@@ -23,19 +22,20 @@ class Article(models.Model):
 
 
 class ManyToManyHistoryTest(TestCase):
-
     def assertPublicationsEqual(self, a, b):
         return self.assertListEqual(list(a.order_by('id').values_list('id', flat=True)), sorted([p.id for p in b]))
 
     def test_m2m_fields_and_methods(self):
-        self.assertListEqual(sorted([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields]),
-                             sorted([u'id', 'time_from', 'time_to', 'article', 'publication']))
+        self.assertListEqual(
+            sorted([field.name for field in Article._meta.get_field('publications').rel.through._meta.local_fields]),
+            sorted([u'id', 'time_from', 'time_to', 'article', 'publication']))
 
     def test_m2m_history_features(self):
 
         p1 = Publication.objects.create(title='Pub1')
         p2 = Publication.objects.create(title='Pub2')
         p3 = Publication.objects.create(title='Pub3')
+        p4 = Publication.objects.create(title='Pub4')
 
         article = Article.objects.create(headline='Article1')
         state_time1 = timezone.now()
@@ -50,30 +50,30 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(article.publications.through.objects.count(), 2)
         time.sleep(1)
 
-        article.publications = [p3]
+        article.publications = [p3, p4]
         state_time3 = article.publications.last_update_time()
-        self.assertPublicationsEqual(article.publications.all(), [p3])
-        self.assertEqual(article.publications.count(), 1)
-        self.assertEqual(article.publications.through.objects.count(), 3)
+        self.assertPublicationsEqual(article.publications.all(), [p3, p4])
+        self.assertEqual(article.publications.count(), 2)
+        self.assertEqual(article.publications.through.objects.count(), 4)
         time.sleep(1)
 
-        article.publications.add(p2, p1)
+        article.publications = [p1, p2, p3]
         state_time4 = article.publications.last_update_time()
         self.assertPublicationsEqual(article.publications.all(), [p1, p2, p3])
         self.assertEqual(article.publications.count(), 3)
-        self.assertEqual(article.publications.through.objects.count(), 5)
+        self.assertEqual(article.publications.through.objects.count(), 6)
         time.sleep(1)
 
         article.publications.remove(p2, p1)
         state_time5 = article.publications.last_update_time()
         self.assertPublicationsEqual(article.publications.all(), [p3])
         self.assertEqual(article.publications.count(), 1)
-        self.assertEqual(article.publications.through.objects.count(), 5)
+        self.assertEqual(article.publications.through.objects.count(), 6)
         time.sleep(1)
 
-        article.publications = [p1, p2]
+        article.publications.add(p1)
         state_time6 = article.publications.last_update_time()
-        self.assertPublicationsEqual(article.publications.all(), [p1, p2])
+        self.assertPublicationsEqual(article.publications.all(), [p1, p3])
         self.assertEqual(article.publications.count(), 2)
         self.assertEqual(article.publications.through.objects.count(), 7)
         time.sleep(1)
@@ -88,43 +88,43 @@ class ManyToManyHistoryTest(TestCase):
         # test of history
         self.assertPublicationsEqual(article.publications.were_at(state_time1), [])
         self.assertPublicationsEqual(article.publications.were_at(state_time2), [p1, p2])
-        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p3, p4])
         self.assertPublicationsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
         self.assertPublicationsEqual(article.publications.were_at(state_time5), [p3])
-        self.assertPublicationsEqual(article.publications.were_at(state_time6), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_at(state_time6), [p1, p3])
         self.assertPublicationsEqual(article.publications.were_at(state_time7), [])
 
         # test of added_at
         self.assertPublicationsEqual(article.publications.added_at(state_time2), [p1, p2])
-        self.assertPublicationsEqual(article.publications.added_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.added_at(state_time3), [p3, p4])
         self.assertPublicationsEqual(article.publications.added_at(state_time4), [p1, p2])
         self.assertPublicationsEqual(article.publications.added_at(state_time5), [])
-        self.assertPublicationsEqual(article.publications.added_at(state_time6), [p1, p2])
+        self.assertPublicationsEqual(article.publications.added_at(state_time6), [p1])
         self.assertPublicationsEqual(article.publications.added_at(state_time7), [])
 
         # test of removed_at
         self.assertPublicationsEqual(article.publications.removed_at(state_time2), [])
         self.assertPublicationsEqual(article.publications.removed_at(state_time3), [p1, p2])
-        self.assertPublicationsEqual(article.publications.removed_at(state_time4), [])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time4), [p4])
         self.assertPublicationsEqual(article.publications.removed_at(state_time5), [p1, p2])
-        self.assertPublicationsEqual(article.publications.removed_at(state_time6), [p3])
-        self.assertPublicationsEqual(article.publications.removed_at(state_time7), [p1, p2])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time6), [])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time7), [p1, p3])
 
         # test were_between
         self.assertPublicationsEqual(article.publications.were_between(state_time1, state_time2), [])
         self.assertPublicationsEqual(article.publications.were_between(state_time1, state_time3), [p1, p2])
         self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time3), [p1, p2])
-        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p3])
-        self.assertPublicationsEqual(article.publications.were_between(state_time3, state_time4), [p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p3, p4])
+        self.assertPublicationsEqual(article.publications.were_between(state_time3, state_time4), [p3, p4])
         self.assertPublicationsEqual(article.publications.were_between(state_time5, state_time6), [p3])
-        self.assertPublicationsEqual(article.publications.were_between(state_time5, state_time7), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time5, state_time7), [p1, p3])
 
         # test added_between
-        self.assertPublicationsEqual(article.publications.added_between(state_time2, state_time3), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.added_between(state_time2, state_time3), [p1, p2, p3, p4])
 
         # test removed_between
-        self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time5), [p1, p2])
-        self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time6), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.removed_between(state_time2, state_time7), [p1, p2, p3, p4])
+        self.assertPublicationsEqual(article.publications.removed_between(state_time3, state_time6), [p1, p2, p4])
 
         # test different arguments
         self.assertListEqual(sorted(list(article.publications.were_at(state_time4, only_pk=True))),
@@ -138,12 +138,12 @@ class ManyToManyHistoryTest(TestCase):
         for i in range(2, 8):
             state_time = locals()['state_time%d' % i]
             version = article.publications.versions.get(time=state_time)
-            self.assertPublicationsEqual(version.items(),   article.publications.were_at(state_time))
-            self.assertPublicationsEqual(version.added(),   article.publications.added_at(state_time))
+            self.assertPublicationsEqual(version.items(), article.publications.were_at(state_time))
+            self.assertPublicationsEqual(version.added(), article.publications.added_at(state_time))
             self.assertPublicationsEqual(version.removed(), article.publications.removed_at(state_time))
-            self.assertEqual(version.count,                 article.publications.were_at(state_time).count())
-            self.assertEqual(version.added_count,           article.publications.added_at(state_time).count())
-            self.assertEqual(version.removed_count,         article.publications.removed_at(state_time).count())
+            self.assertEqual(version.count, article.publications.were_at(state_time).count())
+            self.assertEqual(version.added_count, article.publications.added_at(state_time).count())
+            self.assertEqual(version.removed_count, article.publications.removed_at(state_time).count())
 
         # test absence of versions
         article.publications_no_versions = [p1, p2]
@@ -151,20 +151,33 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(article.publications_no_versions.versions.count(), 0)
 
         # test of deleting last version
+        self.assertEqual(state_time7, article.publications.last_update_time())
+        self.assertPublicationsEqual(article.publications.all(), [])
+        self.assertEqual(article.publications.count(), 0)
+        self.assertEqual(article.publications.through.objects.count(), 7)
+
         version = article.publications.versions.get(time=state_time7)
         version.delete()
+
         self.assertEqual(state_time6, article.publications.last_update_time())
-        self.assertPublicationsEqual(article.publications.all(), [p1, p2])
+        self.assertPublicationsEqual(article.publications.all(), [p1, p3])
         self.assertEqual(article.publications.count(), 2)
         self.assertEqual(article.publications.through.objects.count(), 7)
 
         # test of deleting version in the middle
         self.assertPublicationsEqual(article.publications.were_at(state_time2), [p1, p2])
-        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p3, p4])
         self.assertPublicationsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
-        self.assertPublicationsEqual(article.publications.added_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.added_at(state_time3), [p3, p4])
         self.assertPublicationsEqual(article.publications.added_at(state_time4), [p1, p2])
-        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time3), [p1, p2])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time4), [p4])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p4])
+
+        version = article.publications.versions.get(time=state_time4)
+        self.assertEqual(version.count, 3)
+        self.assertEqual(version.added_count, 2)
+        self.assertEqual(version.removed_count, 1)
 
         version = article.publications.versions.get(time=state_time3)
         version.delete()
@@ -174,7 +187,14 @@ class ManyToManyHistoryTest(TestCase):
         self.assertPublicationsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
         self.assertPublicationsEqual(article.publications.added_at(state_time3), [])
         self.assertPublicationsEqual(article.publications.added_at(state_time4), [p3])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time3), [])
+        self.assertPublicationsEqual(article.publications.removed_at(state_time4), [])
         self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2])
+
+        version = article.publications.versions.get(time=state_time4)
+        self.assertEqual(version.count, 3)
+        self.assertEqual(version.added_count, 1)
+        self.assertEqual(version.removed_count, 0)
 
     def test_m2m_default_features(self):
         """
