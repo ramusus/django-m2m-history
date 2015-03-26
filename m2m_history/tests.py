@@ -3,13 +3,13 @@ Improved tests based on Django docs: https://docs.djangoproject.com/en/dev/topic
 """
 
 import time
-from datetime import datetime
 
 from django.db import models
 from django.test import TestCase
+from django.utils import timezone
 
 from .fields import ManyToManyHistoryField
-from .models import ManyToManyHistoryVersion, HistoryVersionNotLast
+from .models import ManyToManyHistoryVersion
 
 
 class Publication(models.Model):
@@ -38,7 +38,7 @@ class ManyToManyHistoryTest(TestCase):
         p3 = Publication.objects.create(title='Pub3')
 
         article = Article.objects.create(headline='Article1')
-        state_time1 = datetime.now()
+        state_time1 = timezone.now()
         # we need to use sleep here to pass travis mysql tests, becouse Django + mysql doesn't support storing microseconds
         # and as result our state_timeX will be equal
         time.sleep(1)
@@ -150,11 +150,6 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(ManyToManyHistoryVersion.objects.count(), 6)
         self.assertEqual(article.publications_no_versions.versions.count(), 0)
 
-        # test of deleting not last version
-        version = article.publications.versions.get(time=state_time6)
-        with self.assertRaises(HistoryVersionNotLast):
-            version.delete()
-
         # test of deleting last version
         version = article.publications.versions.get(time=state_time7)
         version.delete()
@@ -163,6 +158,23 @@ class ManyToManyHistoryTest(TestCase):
         self.assertEqual(article.publications.count(), 2)
         self.assertEqual(article.publications.through.objects.count(), 7)
 
+        # test of deleting version in the middle
+        self.assertPublicationsEqual(article.publications.were_at(state_time2), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.added_at(state_time3), [p3])
+        self.assertPublicationsEqual(article.publications.added_at(state_time4), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2, p3])
+
+        version = article.publications.versions.get(time=state_time3)
+        version.delete()
+
+        self.assertPublicationsEqual(article.publications.were_at(state_time2), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_at(state_time3), [p1, p2])
+        self.assertPublicationsEqual(article.publications.were_at(state_time4), [p1, p2, p3])
+        self.assertPublicationsEqual(article.publications.added_at(state_time3), [])
+        self.assertPublicationsEqual(article.publications.added_at(state_time4), [p3])
+        self.assertPublicationsEqual(article.publications.were_between(state_time2, state_time4), [p1, p2])
 
     def test_m2m_default_features(self):
         """
