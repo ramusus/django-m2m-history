@@ -167,13 +167,15 @@ def create_many_related_history_manager(superclass, rel):
             # If there aren't any objects, there is nothing to do.
             if objs:
                 new_ids = self.get_set_of_values(objs, target_field_name, check_values=True)
-                vals = self.through._default_manager.using(self.db).values_list(target_field_name, flat=True)
-                vals = vals.filter(**{
-                    source_field_name: self._fk_val,
-                    '%s__in' % target_field_name: new_ids,
-                    'time_to': None,
-                })
-                new_ids = new_ids - set(vals)
+                current_ids = self.through._default_manager.using(self.db) \
+                    .values_list(target_field_name, flat=True) \
+                    .filter(**{
+                        source_field_name: self._fk_val,
+                        '%s__in' % target_field_name: new_ids,
+                        'time_to': None,
+                    })
+                # remove current from new, otherwise integrity error while bulk_create
+                new_ids = new_ids.difference(set(current_ids))
 
                 self.send_signal(source_field_name, 'pre_add', new_ids)
 
@@ -201,8 +203,8 @@ def create_many_related_history_manager(superclass, rel):
                 # Remove the specified objects from the join table
                 qs = self.through._default_manager.using(self.db).filter(**{
                     source_field_name: self._fk_val,
-                    '%s__in' % target_field_name: old_ids,
                     'time_to': None,
+                    '%s__in' % target_field_name: old_ids,
                 })
                 qs.update(time_to=self.get_time())
 
@@ -210,14 +212,23 @@ def create_many_related_history_manager(superclass, rel):
 
         def _clear_items(self, source_field_name, target_field_name, *objs):
             # source_field_name: the PK colname in join table for the source object
+            # target_field_name: the PK colname in join table for the target object
+            # *objs - objects to clear
 
-            self.send_signal(source_field_name, 'pre_clear', None)
+            new_ids = self.get_set_of_values(objs, target_field_name, check_values=True)
+            current_ids = self.through._default_manager.using(self.db) \
+                .values_list(target_field_name, flat=True) \
+                .filter(**{
+                    source_field_name: self._fk_val,
+                    'time_to': None,
+                })
+            old_ids = set(current_ids).difference(new_ids)
+            self.send_signal(source_field_name, 'pre_clear', old_ids)
 
             qs = self.through._default_manager.using(self.db).filter(**{
                 source_field_name: self._fk_val,
                 'time_to': None,
-            }).exclude(**{
-                '%s__in' % target_field_name: self.get_set_of_values(objs, target_field_name)
+                '%s__in' % target_field_name: old_ids,
             })
             qs.update(time_to=self.get_time())
 
