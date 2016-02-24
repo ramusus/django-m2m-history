@@ -49,8 +49,12 @@ def create_many_related_history_manager(superclass, rel):
             if not only_pk:
                 if unique is False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                qs = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
-                    self.db).filter(pk__in=qs)
+                if django.get_version() >= 1.7:
+                    qs = super(ManyToManyHistoryThroughManager, self).get_queryset().using(
+                        self.db).filter(pk__in=qs)
+                else:
+                    qs = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
+                        self.db).filter(pk__in=qs)
 
             if unique:
                 qs = qs.distinct()
@@ -235,7 +239,7 @@ def create_many_related_history_manager(superclass, rel):
             self.send_signal(source_field_name, 'post_clear', set(self.removed_at(self.get_time(), only_pk=True)))
 
         # compatibility with Django 1.7
-        if django.VERSION[:2] == (1, 7):
+        if django.get_version() >= 1.7:
 
             @property
             def _fk_val(self):
