@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 import django
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -49,23 +50,20 @@ def create_many_related_history_manager(superclass, rel):
             if not only_pk:
                 if unique is False:
                     raise ValueError("Argument `unique` should be True if argument only_pk is False")
-                if django.get_version() >= 1.7:
-                    qs = super(ManyToManyHistoryThroughManager, self).get_queryset().using(
-                        self.db).filter(pk__in=qs)
-                else:
-                    qs = super(ManyToManyHistoryThroughManager, self).get_query_set().using(
-                        self.db).filter(pk__in=qs)
+                method_name = 'get_queryset' if django.get_version() >= 1.7 else 'get_query_set'
+                qs = getattr(super(ManyToManyHistoryThroughManager, self), method_name)().using(
+                    self.db).filter(pk__in=qs)
 
             if unique:
                 qs = qs.distinct()
             return qs
 
         def get_query_set(self, **kwargs):
-            # DEPRECATED. backward compatibility
+            warnings.warn("Backward compatibility. Use get_queryset() instead", DeprecationWarning)
             return self.get_queryset(**kwargs)
 
         def get_query_set_through(self):
-            # DEPRECATED. backward compatibility
+            warnings.warn("Backward compatibility. Use get_queryset_through() instead", DeprecationWarning)
             return self.get_queryset_through()
 
         @property
