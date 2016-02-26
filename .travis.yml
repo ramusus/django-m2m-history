@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+  - "3.4"
   - "3.5"
 env:
   - DJANGO=1.5 DB=postgres
@@ -13,6 +14,20 @@ env:
   - DJANGO=1.7 DB=mysql
   - DJANGO=1.8 DB=mysql
   - DJANGO=1.9 DB=mysql
+matrix:
+  exclude:
+    - python: "3.5"
+      env: DJANGO=1.5 DB=postgres
+    - python: "3.5"
+      env: DJANGO=1.5 DB=mysql
+    - python: "3.5"
+      env: DJANGO=1.6 DB=postgres
+    - python: "3.5"
+      env: DJANGO=1.6 DB=mysql
+    - python: "3.5"
+      env: DJANGO=1.7 DB=postgres
+    - python: "3.5"
+      env: DJANGO=1.7 DB=mysql
 before_script:
   - mysql -e 'create database django;'
   - psql -c 'create database django;' -U postgres
