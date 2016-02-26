@@ -4,14 +4,14 @@ Improved tests based on Django docs: https://docs.djangoproject.com/en/dev/topic
 
 import time
 
-from django.test import TestCase
+from django.test import TransactionTestCase
 from django.utils import timezone
 from .models import ManyToManyHistoryVersion
 
 from test_app.models import Publication, Article
 
 
-class ManyToManyHistoryTest(TestCase):
+class ManyToManyHistoryTest(TransactionTestCase):
     def assertPublicationsEqual(self, a, b):
         return self.assertListEqual(list(a.order_by('id').values_list('id', flat=True)), sorted([p.id for p in b]))
 
