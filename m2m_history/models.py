@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, connection
 from django.dispatch import receiver
 
 from .signals import m2m_history_changed
+
+try:
+    from django.contrib.contenttypes.fields import GenericForeignKey
+except ImportError:
+    from django.contrib.contenttypes.generic import GenericForeignKey
 
 try:
     from django.db.transaction import atomic
@@ -18,7 +22,7 @@ class ManyToManyHistoryVersion(models.Model):
 
     content_type = models.ForeignKey(ContentType, related_name='m2m_history_versions', db_index=True)
     object_id = models.BigIntegerField(db_index=True)
-    object = generic.GenericForeignKey('content_type', 'object_id')
+    object = GenericForeignKey('content_type', 'object_id')
 
     field_name = models.CharField(max_length=50, db_index=True)
     time = models.DateTimeField(db_index=True)
