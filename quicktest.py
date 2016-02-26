@@ -6,6 +6,7 @@ Changes log:
  * 2014-12-31 pep8, python 3 compatibility
  * 2015-02-01 Django 1.9 compatibility
  * 2015-02-25 updated code style
+ * 2015-02-26 updated get_database() for Django 1.8
 """
 
 import argparse
@@ -62,7 +63,7 @@ class QuickDjangoTest(object):
         else:
             return
 
-    def get_database(self):
+    def get_database(self, version):
         test_db = os.environ.get('DB', 'sqlite')
         if test_db == 'mysql':
             database = {
@@ -75,10 +76,13 @@ class QuickDjangoTest(object):
                 'ENGINE': 'django.db.backends.postgresql_psycopg2',
                 'USER': 'postgres',
                 'NAME': 'django',
-                'OPTIONS': {
-                    'autocommit': True,
-                }
             }
+            if version < 1.8:
+                database.update({
+                    'OPTIONS': {
+                        'autocommit': True,
+                    }
+                })
         else:
             database = {
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -126,7 +130,7 @@ class QuickDjangoTest(object):
 
         settings.configure(
             DEBUG=True,
-            DATABASES=self.get_database(),
+            DATABASES=self.get_database(1.2),
             INSTALLED_APPS=self.INSTALLED_APPS + INSTALLED_APPS + self.apps,
             **settings_test
         )
@@ -144,7 +148,7 @@ class QuickDjangoTest(object):
 
         settings.configure(
             DEBUG=True,
-            DATABASES=self.get_database(),
+            DATABASES=self.get_database(1.7),
             MIDDLEWARE_CLASSES=('django.middleware.common.CommonMiddleware',
                                 'django.middleware.csrf.CsrfViewMiddleware'),
             INSTALLED_APPS = self.INSTALLED_APPS + INSTALLED_APPS + self.apps,
@@ -166,7 +170,7 @@ class QuickDjangoTest(object):
 
         settings.configure(
             DEBUG=True,
-            DATABASES=self.get_database(),
+            DATABASES=self.get_database(1.8),
             MIDDLEWARE_CLASSES=('django.middleware.common.CommonMiddleware',
                                 'django.middleware.csrf.CsrfViewMiddleware'),
             INSTALLED_APPS = self.INSTALLED_APPS + INSTALLED_APPS + self.apps,
