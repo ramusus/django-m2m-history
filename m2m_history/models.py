@@ -88,7 +88,7 @@ class ManyToManyHistoryVersion(models.Model):
             # 3. update time_to of first part of members using temp table
             # 4. drop temp table
             sql = '''
-                CREATE TEMP TABLE m2m_history_items_temp AS
+                CREATE TEMPORARY TABLE m2m_history_items_temp AS
                     SELECT second.%(m2m_object_name)s, second.%(m2m_item_name)s, second.time_from, second.time_to
                     FROM %(m2m_table_name)s AS second
                     WHERE (second.time_from = %(next_time_from)s
