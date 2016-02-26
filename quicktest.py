@@ -78,11 +78,7 @@ class QuickDjangoTest(object):
                 'NAME': 'django',
             }
             if version < 1.8:
-                database.update({
-                    'OPTIONS': {
-                        'autocommit': True,
-                    }
-                })
+                database['OPTIONS'] = {'autocommit': True}
         else:
             database = {
                 'ENGINE': 'django.db.backends.sqlite3',
