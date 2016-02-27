@@ -6,9 +6,9 @@ import time
 
 from django.test import TransactionTestCase
 from django.utils import timezone
-from .models import ManyToManyHistoryVersion
 
-from test_app.models import Publication, Article
+from .models import ManyToManyHistoryVersion
+from .test_app.models import Publication, Article
 
 
 class ManyToManyHistoryTest(TransactionTestCase):
