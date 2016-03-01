@@ -11,6 +11,10 @@ from django.utils import timezone
 from .models import ManyToManyHistoryVersion
 from .signals import m2m_history_changed
 
+# compatibility with Django 1.9
+if django.VERSION[:2] >= (1, 9):
+    raise NotImplementedError("Unfortunately django-m2m-history application still is not compatible with Django 1.9")
+
 
 def create_many_related_history_manager(superclass, rel):
     baseManagerClass = create_many_related_manager(superclass, rel)
