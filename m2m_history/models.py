@@ -99,14 +99,13 @@ class ManyToManyHistoryVersion(models.Model):
                                     AND first.time_to = %(time_to)s
                                     AND first.%(m2m_item_name)s IN %(items)s)));
 
-                DELETE FROM %(m2m_table_name)s AS second
-                    WHERE (second.time_from = %(next_time_from)s
-                        AND second.%(m2m_object_name)s = %(object_id)s
-                        AND second.%(m2m_item_name)s IN (
-                            SELECT first.%(m2m_item_name)s FROM %(m2m_table_name)s AS first
-                                WHERE (first.%(m2m_object_name)s = second.%(m2m_object_name)s
-                                    AND first.time_to = %(time_to)s
-                                    AND first.%(m2m_item_name)s IN %(items)s)));
+                DELETE FROM %(m2m_table_name)s AS second WHERE (second.time_from = %(next_time_from)s
+                    AND second.%(m2m_object_name)s = %(object_id)s
+                    AND second.%(m2m_item_name)s IN (
+                        SELECT first.%(m2m_item_name)s FROM %(m2m_table_name)s AS first
+                            WHERE (first.%(m2m_object_name)s = second.%(m2m_object_name)s
+                                AND first.time_to = %(time_to)s
+                                AND first.%(m2m_item_name)s IN %(items)s)));
 
                 UPDATE %(m2m_table_name)s AS first
                     SET time_to = second.time_to
