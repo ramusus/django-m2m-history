@@ -12,7 +12,7 @@ Compatibility
 
   * python v2.7, v3.4
   * django >=1.5, <=1.8. **Does not compatible with Django 1.9**
-  * postgres, mysql
+  * postgres
 
 Installation
 ------------

@@ -7,10 +7,6 @@ env:
   - DJANGO=1.6 DB=postgres
   - DJANGO=1.7 DB=postgres
   - DJANGO=1.8 DB=postgres
-  - DJANGO=1.5 DB=mysql
-  - DJANGO=1.6 DB=mysql
-  - DJANGO=1.7 DB=mysql
-  - DJANGO=1.8 DB=mysql
 before_script:
   - mysql -e 'create database django;'
   - psql -c 'create database django;' -U postgres
