@@ -19,6 +19,7 @@ except ImportError:
 class ManyToManyHistoryVersion(models.Model):
     class Meta:
         unique_together = ('content_type', 'object_id', 'field_name', 'time')
+        get_latest_by = 'time'
 
     content_type = models.ForeignKey(ContentType, related_name='m2m_history_versions', db_index=True)
     object_id = models.BigIntegerField(db_index=True)

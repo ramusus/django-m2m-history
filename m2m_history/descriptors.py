@@ -72,7 +72,7 @@ def create_many_related_history_manager(superclass, rel):
 
         @property
         def queryset_through(self):
-            return self.get_query_set_through()
+            return self.get_queryset_through()
 
         def get_queryset_through(self):
             qs = self.through._default_manager.using(self.db).filter(**{
